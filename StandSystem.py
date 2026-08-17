@@ -23,25 +23,21 @@ MODIFIERS = [
     {
         "name": "Normal",
         "chance": 60.0,
-        "rarity_bonus": 0
     },
 
     {
         "name": "Shiny",
         "chance": 20,
-        "rarity_bonus": 1
     },
 
     {
         "name": "Rainbow",
         "chance": 15,
-        "rarity_bonus": 3
     },
 
     {
         "name": "Ethereal",
         "chance": 5,
-        "rarity_bonus": 5
     }
 ]
 
@@ -360,7 +356,7 @@ def get_user_stand(twitch_id):
 def set_user_stand(
     twitch_id,
     stand_name,
-    modifier=None
+    modifier,
 ):
 
     data = {
