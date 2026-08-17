@@ -1,8 +1,10 @@
 import os
 import random
+import requests
+
 from pathlib import Path
 
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from supabase import create_client
 from dotenv import load_dotenv
 
@@ -19,6 +21,9 @@ app = Flask(__name__)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 API_SECRET = os.getenv("API_SECRET")
+
+TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
+TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
 
 supabase = create_client(
     SUPABASE_URL,
@@ -50,7 +55,7 @@ STANDS = [
     {
         "name": "The Fool",
         "rarity": "UNCOMMON",
-        "weight": 60
+        "weight": 60,
     },
 
     {
@@ -140,7 +145,8 @@ STANDS = [
     {
         "name": "The World",
         "rarity": "LEGENDARY",
-        "weight": 5
+        "weight": 5,
+        "sound": "the_world"
     },
 
     {
@@ -180,6 +186,48 @@ STANDS = [
     },
 
 ]
+
+def get_twitch_user_id(username):
+
+    token_response = requests.post(
+        "https://id.twitch.tv/oauth2/token",
+        params={
+            "client_id": TWITCH_CLIENT_ID,
+            "client_secret": TWITCH_CLIENT_SECRET,
+            "grant_type": "client_credentials"
+        }
+    )
+
+    if token_response.status_code != 200:
+        print("Failed to get Twitch access token")
+        print(token_response.text)
+        return None
+
+    access_token = token_response.json()["access_token"]
+
+    # Look up the Twitch user
+    user_response = requests.get(
+        "https://api.twitch.tv/helix/users",
+        params={
+            "login": username
+        },
+        headers={
+            "Client-ID": TWITCH_CLIENT_ID,
+            "Authorization": f"Bearer {access_token}"
+        }
+    )
+
+    if user_response.status_code != 200:
+        print("Failed to find Twitch user")
+        print(user_response.text)
+        return None
+
+    users = user_response.json()["data"]
+
+    if not users:
+        return None
+
+    return users[0]["id"]
 
 def get_random_stand():
 
@@ -246,31 +294,23 @@ def get_stand():
         f"{stand_name} [{rarity}]!"
     )
 
-
-# ============================================================
-# REROLL
-# ============================================================
-
 @app.route("/reroll")
 def reroll():
 
     twitch_id = request.args.get("twitch_id")
     secret = request.args.get("secret")
 
-    # Verify API secret
     if secret != API_SECRET:
         return "Unauthorized", 401
 
     if not twitch_id:
         return "Missing Twitch ID", 400
 
-    # Generate new Stand
     stand = get_random_stand()
 
     stand_name = stand["name"]
     rarity = stand["rarity"]
 
-    # Check whether user already exists
     result = (
         supabase
         .table("stand_users")
@@ -278,10 +318,6 @@ def reroll():
         .eq("twitch_id", twitch_id)
         .execute()
     )
-
-    # --------------------------------------------------------
-    # UPDATE EXISTING USER
-    # --------------------------------------------------------
 
     if result.data:
 
@@ -292,11 +328,6 @@ def reroll():
             "twitch_id",
             twitch_id
         ).execute()
-
-
-    # --------------------------------------------------------
-    # CREATE USER IF THEY DON'T EXIST
-    # --------------------------------------------------------
 
     else:
 
@@ -312,6 +343,98 @@ def reroll():
         f"You received {stand_name} [{rarity}]!"
     )
 
+@app.route("/setstand")
+def set_stand():
+
+    username = request.args.get("username")
+    stand_name = request.args.get("stand")
+    secret = request.args.get("secret")
+
+    if secret != API_SECRET:
+        return "Unauthorized", 401
+
+    if not username:
+        return "Missing username", 400
+
+    if not stand_name:
+        return "Missing Stand name", 400
+
+    selected_stand = None
+
+    for stand in STANDS:
+
+        if stand["name"].lower() == stand_name.lower():
+
+            selected_stand = stand
+            break
+
+    if selected_stand is None:
+
+        return (
+            f"Stand '{stand_name}' was not found.",
+            404
+        )
+
+    twitch_id = get_twitch_user_id(username)
+
+    if twitch_id is None:
+
+        return (
+            f"Twitch user '{username}' was not found.",
+            404
+        )
+
+    # --------------------------------------------------------
+    # CHECK IF USER ALREADY HAS A STAND
+    # --------------------------------------------------------
+
+    result = (
+        supabase
+        .table("stand_users")
+        .select("twitch_id")
+        .eq("twitch_id", twitch_id)
+        .execute()
+    )
+
+    # --------------------------------------------------------
+    # UPDATE EXISTING USER
+    # --------------------------------------------------------
+
+    if result.data:
+
+        supabase.table("stand_users").update({
+
+            "stand_name": selected_stand["name"],
+            "rarity": selected_stand["rarity"]
+
+        }).eq(
+            "twitch_id",
+            twitch_id
+        ).execute()
+
+    # --------------------------------------------------------
+    # CREATE NEW USER
+    # --------------------------------------------------------
+
+    else:
+
+        supabase.table("stand_users").insert({
+
+            "twitch_id": twitch_id,
+            "stand_name": selected_stand["name"],
+            "rarity": selected_stand["rarity"]
+
+        }).execute()
+
+    # --------------------------------------------------------
+    # RESPONSE
+    # --------------------------------------------------------
+
+    return (
+        f"{username}'s Stand has been set to "
+        f"{selected_stand['name']} "
+        f"[{selected_stand['rarity']}]!"
+    )
 
 @app.route("/standsound")
 def get_stand_sound():
