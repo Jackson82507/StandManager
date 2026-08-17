@@ -374,6 +374,7 @@ def get_stand():
 
         stand_name = result.data[0]["stand_name"]
         rarity = result.data[0]["rarity"]
+        modifier = result.data[0]["modifier"]
 
         if modifier["name"].lower() in ["normal", "none"]:
             message = (
