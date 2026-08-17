@@ -8,16 +8,6 @@ from flask import Flask, request, jsonify
 from supabase import create_client
 from dotenv import load_dotenv
 
-import asyncio
-import json
-import uuid
-import websockets
-
-
-# ============================================================
-# CONFIGURATION
-# ============================================================
-
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
@@ -30,8 +20,6 @@ API_SECRET = os.getenv("API_SECRET")
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
 
-STREAMELEMENTS_CHANNEL_ID = os.getenv("STREAMELEMENTS_CHANNEL_ID")
-STREAMELEMENTS_JWT = os.getenv("STREAMELEMENTS_JWT")
 
 supabase = create_client(
     SUPABASE_URL,
@@ -239,71 +227,6 @@ STANDS = [
     },
 
 ]
-
-async def streamelements_listener():
-
-    uri = "wss://astro.streamelements.com"
-
-    while True:
-
-        try:
-
-            async with websockets.connect(uri) as websocket:
-
-                print("Connected to StreamElements WebSocket")
-
-                async for raw_message in websocket:
-
-                    message = json.loads(raw_message)
-
-                    message_type = message.get("type")
-
-                    # StreamElements is ready
-                    if message_type == "welcome":
-
-                        print("StreamElements WebSocket authenticated")
-
-                        await websocket.send(json.dumps({
-                            "type": "subscribe",
-                            "nonce": str(uuid.uuid4()),
-                            "data": {
-                                "topic": "channel.loyalty.redemptions",
-                                "room": STREAMELEMENTS_CHANNEL_ID,
-                                "token": STREAMELEMENTS_JWT,
-                                "token_type": "jwt"
-                            }
-                        }))
-
-                    # Subscription response
-                    elif message_type == "response":
-
-                        print("StreamElements response:")
-                        print(message)
-
-                    # Actual event
-                    elif message_type == "message":
-
-                        if message.get("topic") != "channel.loyalty.redemptions":
-                            continue
-
-                        print("LOYALTY REDEMPTION:")
-                        print(json.dumps(message, indent=2))
-
-                        await handle_redemption(message)
-
-        except Exception as e:
-
-            print("StreamElements WebSocket error:", e)
-            print("Reconnecting in 5 seconds...")
-
-            await asyncio.sleep(5)
-
-async def handle_redemption(message):
-
-    data = message.get("data", {})
-
-    print("Redemption data:")
-    print(json.dumps(data, indent=2))
 
 
 def get_twitch_username_from_id(twitch_id):
@@ -693,25 +616,7 @@ def get_stand_sound():
 
     return "SOUND_NOT_FOUND", 404
 
-# ============================================================
-# RUN SERVER
-# ============================================================
-
-import threading
-
-
-def start_streamelements_listener():
-    asyncio.run(streamelements_listener())
-
-
 if __name__ == "__main__":
-
-    websocket_thread = threading.Thread(
-        target=start_streamelements_listener,
-        daemon=True
-    )
-
-    websocket_thread.start()
 
     app.run(
         host="0.0.0.0",
