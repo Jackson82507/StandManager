@@ -356,15 +356,26 @@ def reroll():
         f"You received {stand_name} [{rarity}]!"
     )
 
-@app.route("/setstand")
-def set_stand():
+@app.route("/setstandcommand")
+def set_stand_command():
 
-    username = request.args.get("username")
-    stand_name = request.args.get("stand")
+    command = request.args.get("command")
     secret = request.args.get("secret")
 
     if secret != API_SECRET:
         return "Unauthorized", 401
+
+    if not command:
+        return "Usage: username | stand name", 400
+
+    # Split at the | character
+    parts = command.split("|", 1)
+
+    if len(parts) != 2:
+        return "Usage: username | stand name", 400
+
+    username = parts[0].strip()
+    stand_name = parts[1].strip()
 
     if not username:
         return "Missing username", 400
@@ -372,35 +383,27 @@ def set_stand():
     if not stand_name:
         return "Missing Stand name", 400
 
+    # Find Stand
     selected_stand = None
 
     for stand in STANDS:
 
         if stand["name"].lower() == stand_name.lower():
-
             selected_stand = stand
             break
 
     if selected_stand is None:
 
-        return (
-            f"Stand '{stand_name}' was not found.",
-            404
-        )
+        return f"Stand '{stand_name}' was not found.", 404
 
+    # Find Twitch ID
     twitch_id = get_twitch_user_id(username)
 
     if twitch_id is None:
 
-        return (
-            f"Twitch user '{username}' was not found.",
-            404
-        )
+        return f"Twitch user '{username}' was not found.", 404
 
-    # --------------------------------------------------------
-    # CHECK IF USER ALREADY HAS A STAND
-    # --------------------------------------------------------
-
+    # Check existing user
     result = (
         supabase
         .table("stand_users")
@@ -409,39 +412,25 @@ def set_stand():
         .execute()
     )
 
-    # --------------------------------------------------------
-    # UPDATE EXISTING USER
-    # --------------------------------------------------------
-
+    # Update
     if result.data:
 
         supabase.table("stand_users").update({
-
             "stand_name": selected_stand["name"],
             "rarity": selected_stand["rarity"]
-
         }).eq(
             "twitch_id",
             twitch_id
         ).execute()
 
-    # --------------------------------------------------------
-    # CREATE NEW USER
-    # --------------------------------------------------------
-
+    # Create
     else:
 
         supabase.table("stand_users").insert({
-
             "twitch_id": twitch_id,
             "stand_name": selected_stand["name"],
             "rarity": selected_stand["rarity"]
-
         }).execute()
-
-    # --------------------------------------------------------
-    # RESPONSE
-    # --------------------------------------------------------
 
     return (
         f"{username}'s Stand has been set to "
