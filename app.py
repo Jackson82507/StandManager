@@ -356,6 +356,16 @@ def reroll():
         f"You received {stand_name} [{rarity}]!"
     )
 
+@app.route("/setstandtest")
+def set_stand_test():
+
+    username = request.args.get("username")
+
+    if not username:
+        return "Missing username", 400
+
+    return f"Received username: {username}"
+
 @app.route("/setstandcommand")
 def set_stand_command():
 
