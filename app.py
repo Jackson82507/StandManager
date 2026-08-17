@@ -394,7 +394,6 @@ def reroll_stand(twitch_id):
     return {
         "stand": stand,
         "modifier": modifier,
-        "effective_rarity": effective_rarity
     }
 
 @app.route("/reroll")
@@ -406,8 +405,8 @@ def reroll():
     if secret != API_SECRET:
         return "Unauthorized", 401
 
-    if not username:
-        return "Missing username", 400
+    if not twitch_id:
+        return "Missing id", 400
 
     # Find Twitch ID
     twitch_id = get_twitch_user_id(username)
