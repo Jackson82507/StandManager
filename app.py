@@ -19,7 +19,7 @@ supabase = create_client(
     SUPABASE_KEY
 )
 
-from stand_system import (
+from StandSystem import (
     get_twitch_user_id,
     get_twitch_username_from_id,
     get_user_stand,
@@ -28,7 +28,7 @@ from stand_system import (
     set_user_stand
 )
 
-from battle_system import (
+from BattleSystem import (
     create_battle,
     get_battle
 )
