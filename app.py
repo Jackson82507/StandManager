@@ -463,17 +463,37 @@ def reroll_stand(twitch_id):
         "modifier": modifier,
     }
 
+REROLL_COST = 500
+
 @app.route("/reroll")
 def reroll():
+
     twitch_id = request.args.get("twitch_id")
     username = request.args.get("username")
+    points = request.args.get("points")
     secret = request.args.get("secret")
 
     if secret != API_SECRET:
         return "Unauthorized", 401
 
     if not twitch_id:
-        return "Missing id", 400
+        return "Missing Twitch ID", 400
+
+    if not username:
+        username = "You"
+
+    try:
+        points = int(points)
+    except (TypeError, ValueError):
+        return "Could not determine your loyalty points.", 400
+
+    # POINT CHECK
+    if points < REROLL_COST:
+        return (
+            f"❌ {username}, you don't have enough points! "
+            f"You have {points:,} points, but need "
+            f"{REROLL_COST:,} points to reroll."
+        )
 
     # Check user exists
     result = (
