@@ -377,17 +377,16 @@ def get_stand():
 
         if modifier["name"].lower() in ["normal", "none"]:
             message = (
-                    f" Your Stand is {stand_name}"
-                    f"[{rarity}]!"
+                f"Your Stand is {stand_name}"
+                f" [{rarity}]!"
             )
-
         else:
             message = (
-                f" Your Stand is {stand_name} "
-                f"[{rarity}]!"
-                f"[{modifier['name']}] "
+                f"Your Stand is {stand_name}"
+                f" [{rarity}]!"
+                f" [{modifier['name']}]"
             )
-        )
+
         return message
 
     stand = get_random_stand()
