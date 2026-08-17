@@ -365,7 +365,7 @@ def get_stand():
     result = (
         supabase
         .table("stand_users")
-        .select("stand_name, rarity")
+        .select("stand_name, rarity, modifier")
         .eq("twitch_id", twitch_id)
         .execute()
     )
