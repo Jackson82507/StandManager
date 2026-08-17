@@ -232,6 +232,32 @@ STANDS = [
 
 ]
 
+def get_twitch_username_from_id(twitch_id):
+
+    headers = {
+        "Client-ID": TWITCH_CLIENT_ID,
+        "Authorization": f"Bearer {TWITCH_ACCESS_TOKEN}"
+    }
+
+    response = requests.get(
+        "https://api.twitch.tv/helix/users",
+        headers=headers,
+        params={
+            "id": twitch_id
+        }
+    )
+
+    if response.status_code != 200:
+        print("Twitch username lookup failed:", response.text)
+        return None
+
+    data = response.json().get("data", [])
+
+    if not data:
+        return None
+
+    return data[0]["display_name"]
+
 def get_twitch_user_id(username):
 
     username = username.strip().lower()
