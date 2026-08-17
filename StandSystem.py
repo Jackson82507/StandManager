@@ -335,7 +335,7 @@ def roll_stand():
 
     return {
         "stand_name": stand,
-        "modifier": modifier,
+        "modifier": modifier["name"],
     }
 
 def get_user_stand(twitch_id):
