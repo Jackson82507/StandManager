@@ -568,8 +568,6 @@ def reroll():
     if not result.data:
         return "❌ You don't have a Stand yet.", 400
 
-    deduct_streamelements_points(username, 1000)
-
     # Roll the new Stand
     roll_result = reroll_stand(twitch_id)
 
