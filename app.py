@@ -448,9 +448,15 @@ def reroll():
             f"{stand['name']}"
         )
 
+    if modifier["name"] == "Normal":
+        modifier_text = ""
+    else:
+        modifier_text = f" [{modifier['name']}]"
+
     return (
         f"{username} rolled "
-        f"{display_name} "
+        f"{stand['name']}"
+        f"{modifier_text} "
     )
 
 @app.route("/setstandcommand")
