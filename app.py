@@ -399,7 +399,7 @@ def reroll_stand(twitch_id):
 
 @app.route("/reroll")
 def reroll():
-
+    twitch_id = request.args.get("twitch_id")
     username = request.args.get("username")
     secret = request.args.get("secret")
 
