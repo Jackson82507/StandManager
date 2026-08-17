@@ -379,13 +379,13 @@ def get_stand():
         if modifier.lower() in ["normal", "none"]:
             message = (
                 f"Your Stand is {stand_name}"
-                f" [{rarity}]!"
+                f" [{rarity}]"
             )
         else:
             message = (
                 f"Your Stand is {stand_name}"
-                f" [{rarity}]!"
-                f" [{modifier['name']}]"
+                f" [{rarity}]"
+                f" [{modifier}]"
             )
 
         return message
