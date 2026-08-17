@@ -378,9 +378,8 @@ def get_stand():
         if modifier["name"].lower() in ["normal", "none"]:
             message = (
                 return (
-                    f" Your Stand is {stand_name} "
+                    f" Your Stand is {stand_name}"
                     f"[{rarity}]!"
-                 )
             )
 
         else:
