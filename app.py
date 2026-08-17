@@ -438,6 +438,11 @@ def reroll():
             400
         )
 
+    username = get_twitch_username_from_id(twitch_id)
+
+    if not username:
+        username = "You"
+    
     # Roll new Stand
     result = reroll_stand(twitch_id)
 
