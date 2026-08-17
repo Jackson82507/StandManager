@@ -4,6 +4,8 @@ import random
 import requests
 from supabase import create_client, Client
 
+app = Flask(__name__)
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 API_SECRET = os.getenv("API_SECRET")
