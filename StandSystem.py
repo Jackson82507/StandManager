@@ -384,7 +384,7 @@ def roll_stand_for_user(twitch_id):
 
     set_user_stand(
         twitch_id,
-        result["stand"],
+        result["stand_name"],
         result["modifier"]
     )
 
@@ -401,7 +401,7 @@ def reroll_stand(twitch_id):
 
     set_user_stand(
         twitch_id,
-        result["stand"],
+        result["stand_name"],
         result["modifier"]
     )
 
