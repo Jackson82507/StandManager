@@ -375,9 +375,20 @@ def get_stand():
         stand_name = result.data[0]["stand_name"]
         rarity = result.data[0]["rarity"]
 
-        return (
-            f"🌀 Your Stand is {stand_name} "
-            f"[{rarity}]!"
+        if modifier["name"].lower() in ["normal", "none"]:
+            message = (
+                return (
+                    f" Your Stand is {stand_name} "
+                    f"[{rarity}]!"
+                 )
+            )
+
+        else:
+            message = (
+                f" Your Stand is {stand_name} "
+                f"[{rarity}]!"
+                f"[{modifier['name']}] "
+            )
         )
 
     stand = get_random_stand()
@@ -393,7 +404,7 @@ def get_stand():
     }).execute()
 
     return (
-        f"🌀 You have received "
+        f" You have received "
         f"{stand_name} [{rarity}]!"
     )
 
@@ -489,13 +500,13 @@ def reroll():
 
     if modifier["name"].lower() in ["normal", "none"]:
         message = (
-            f"🌀 {username} rolled "
+            f"{username} rolled "
             f"{stand['name']} "
         )
 
     else:
         message = (
-            f"🌀 {username} rolled "
+            f"{username} rolled "
             f"{stand['name']} "
             f"[{modifier['name']}] "
         )
