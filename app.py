@@ -313,6 +313,42 @@ def reroll():
     )
 
 
+@app.route("/standsound")
+def get_stand_sound():
+
+    twitch_id = request.args.get("twitch_id")
+    secret = request.args.get("secret")
+
+    if secret != API_SECRET:
+        return "Unauthorized", 401
+
+    if not twitch_id:
+        return "Missing Twitch ID", 400
+
+    # Find the user's Stand
+    result = (
+        supabase
+        .table("stand_users")
+        .select("stand_name")
+        .eq("twitch_id", twitch_id)
+        .execute()
+    )
+
+    # User doesn't have a Stand
+    if not result.data:
+        return "NO_STAND", 404
+
+    stand_name = result.data[0]["stand_name"]
+
+    # Find that Stand in our editable list
+    for stand in STANDS:
+
+        if stand["name"] == stand_name:
+
+            return stand["sound"]
+
+    return "SOUND_NOT_FOUND", 404
+
 # ============================================================
 # RUN SERVER
 # ============================================================
