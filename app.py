@@ -118,7 +118,7 @@ def reroll():
 
     roll_result = reroll_stand(twitch_id)
 
-    stand = roll_result["stand"]
+    stand = roll_result["stand_name"]
     modifier = roll_result["modifier"]
 
     if modifier["name"].lower() in ["normal", "none"]:
