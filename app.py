@@ -189,6 +189,11 @@ STANDS = [
 
 def get_twitch_user_id(username):
 
+    username = username.strip().lower()
+
+    print(f"Looking up Twitch user: {username}")
+
+    # Get Twitch app access token
     token_response = requests.post(
         "https://id.twitch.tv/oauth2/token",
         params={
@@ -198,14 +203,16 @@ def get_twitch_user_id(username):
         }
     )
 
+    print("Token status:", token_response.status_code)
+
     if token_response.status_code != 200:
-        print("Failed to get Twitch access token")
+        print("Twitch token error:")
         print(token_response.text)
         return None
 
     access_token = token_response.json()["access_token"]
 
-    # Look up the Twitch user
+    # Ask Twitch for the user
     user_response = requests.get(
         "https://api.twitch.tv/helix/users",
         params={
@@ -217,17 +224,23 @@ def get_twitch_user_id(username):
         }
     )
 
+    print("User lookup status:", user_response.status_code)
+    print("User lookup response:", user_response.text)
+
     if user_response.status_code != 200:
-        print("Failed to find Twitch user")
-        print(user_response.text)
         return None
 
-    users = user_response.json()["data"]
+    users = user_response.json().get("data", [])
 
     if not users:
+        print(f"Twitch user '{username}' was not found.")
         return None
 
-    return users[0]["id"]
+    twitch_id = users[0]["id"]
+
+    print(f"Found Twitch ID: {twitch_id}")
+
+    return twitch_id
 
 def get_random_stand():
 
