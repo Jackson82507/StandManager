@@ -405,4 +405,4 @@ def reroll_stand(twitch_id):
         result["modifier"]
     )
 
-    return
+    return result

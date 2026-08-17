@@ -116,9 +116,15 @@ def reroll():
     if not result.data:
         return "You don't have a Stand yet.", 400
 
-    roll_result = reroll_stand(twitch_id)
+    result = reroll_stand(twitch_id)
 
-    stand = roll_result["stand_name"]
+    if not result:
+        return "❌ Reroll failed.", 500
+
+    stand = result["stand"]
+    modifier = result["modifier"]
+
+    stand = roll_result["stand"]
     modifier = roll_result["modifier"]
 
     if modifier["name"].lower() in ["normal", "none"]:
