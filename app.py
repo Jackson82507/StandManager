@@ -362,21 +362,29 @@ def set_stand_command():
     command = request.args.get("command")
     secret = request.args.get("secret")
 
+    # Security
     if secret != API_SECRET:
         return "Unauthorized", 401
 
     if not command:
         return "Missing command", 400
 
+    # Split username and Stand at the FIRST |
     parts = command.split("|", 1)
 
     if len(parts) != 2:
-        return "Use: username|stand name", 400
+        return "Usage: username | stand name", 400
 
     username = parts[0].strip()
     stand_name = parts[1].strip()
 
-    # Find the stand
+    if not username:
+        return "Missing username", 400
+
+    if not stand_name:
+        return "Missing Stand name", 400
+
+    # Find Stand
     selected_stand = None
 
     for stand in STANDS:
@@ -388,13 +396,13 @@ def set_stand_command():
     if selected_stand is None:
         return f"Stand '{stand_name}' was not found.", 404
 
-    # Find Twitch user
+    # Get Twitch ID
     twitch_id = get_twitch_user_id(username)
 
     if twitch_id is None:
         return f"Twitch user '{username}' was not found.", 404
 
-    # Check if user already exists
+    # Check database
     result = (
         supabase
         .table("stand_users")
@@ -403,6 +411,7 @@ def set_stand_command():
         .execute()
     )
 
+    # Update existing user
     if result.data:
 
         supabase.table("stand_users").update({
@@ -413,6 +422,7 @@ def set_stand_command():
             twitch_id
         ).execute()
 
+    # Create new user
     else:
 
         supabase.table("stand_users").insert({
