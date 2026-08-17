@@ -29,6 +29,51 @@ supabase = create_client(
     SUPABASE_URL,
     SUPABASE_KEY
 )
+
+MODIFIERS = [
+    {
+        "name": "Normal",
+        "chance": 98.0,
+        "rarity_bonus": 0
+    },
+
+    {
+        "name": "Shiny",
+        "chance": 1.5,
+        "rarity_bonus": 1
+    },
+
+    {
+        "name": "Rainbow",
+        "chance": 0.45,
+        "rarity_bonus": 3
+    },
+
+    {
+        "name": "Ethereal",
+        "chance": 0.05,
+        "rarity_bonus": 5
+    }
+]
+
+RARITY_LEVELS = {
+    "COMMON": 0,
+    "UNCOMMON": 1,
+    "RARE": 2,
+    "EPIC": 3,
+    "LEGENDARY": 4,
+    "MYTHIC": 5
+}
+
+RARITY_NAMES = [
+    "COMMON",
+    "UNCOMMON",
+    "RARE",
+    "EPIC",
+    "LEGENDARY",
+    "MYTHIC"
+]
+
         #Common Stands
 STANDS = [
     {
@@ -242,6 +287,10 @@ def get_twitch_user_id(username):
 
     return twitch_id
 
+    #
+    # RANDOM STAND
+    #
+
 def get_random_stand():
 
     stands = STANDS
@@ -307,53 +356,101 @@ def get_stand():
         f"{stand_name} [{rarity}]!"
     )
 
+def roll_modifier():
+
+    modifiers = []
+    weights = []
+
+    for modifier in MODIFIERS:
+
+        modifiers.append(modifier)
+        weights.append(modifier["chance"])
+
+    return random.choices(
+        modifiers,
+        weights=weights,
+        k=1
+    )[0]
+
+def reroll_stand(twitch_id):
+
+    stand = roll_stand()
+
+    modifier = roll_modifier()
+
+    # Save
+    supabase.table("stand_users").update({
+
+        "stand_name": stand["name"],
+        "rarity": stand["rarity"],
+        "modifier": modifier["name"],
+        "effective_rarity": effective_rarity
+
+    }).eq(
+        "twitch_id",
+        twitch_id
+    ).execute()
+
+    return {
+        "stand": stand,
+        "modifier": modifier,
+        "effective_rarity": effective_rarity
+    }
+
 @app.route("/reroll")
 def reroll():
 
-    twitch_id = request.args.get("twitch_id")
+    username = request.args.get("username")
     secret = request.args.get("secret")
 
     if secret != API_SECRET:
         return "Unauthorized", 401
 
-    if not twitch_id:
-        return "Missing Twitch ID", 400
+    if not username:
+        return "Missing username", 400
 
-    stand = get_random_stand()
+    # Find Twitch ID
+    twitch_id = get_twitch_user_id(username)
 
-    stand_name = stand["name"]
-    rarity = stand["rarity"]
+    if twitch_id is None:
+        return f"Twitch user '{username}' was not found.", 404
 
+    # Check user exists
     result = (
         supabase
         .table("stand_users")
-        .select("twitch_id")
+        .select("*")
         .eq("twitch_id", twitch_id)
         .execute()
     )
 
-    if result.data:
+    if not result.data:
+        return (
+            f"{username} does not have a Stand yet.",
+            400
+        )
 
-        supabase.table("stand_users").update({
-            "stand_name": stand_name,
-            "rarity": rarity
-        }).eq(
-            "twitch_id",
-            twitch_id
-        ).execute()
+    # Roll new Stand
+    result = reroll_stand(twitch_id)
+
+    stand = result["stand"]
+    modifier = result["modifier"]
+
+    # Format display name
+    if modifier["name"] == "Normal":
+
+        display_name = stand["name"]
 
     else:
 
-        supabase.table("stand_users").insert({
-            "twitch_id": twitch_id,
-            "stand_name": stand_name,
-            "rarity": rarity
-        }).execute()
-
+        display_name = (
+            f"{modifier['name']} "
+            f"{stand['name']}"
+        )
 
     return (
-        f"🎲 Your Stand has been rerolled! "
-        f"You received {stand_name} [{rarity}]!"
+        f"{username} rolled "
+        f"{display_name} "
     )
 
 @app.route("/setstandcommand")
@@ -405,29 +502,35 @@ def set_stand_command():
 
     # Update existing user
     if result.data:
-
         supabase.table("stand_users").update({
             "stand_name": selected_stand["name"],
-            "rarity": selected_stand["rarity"]
+            "rarity": selected_stand["rarity"],
+            "modifier": "Normal",
+            "effective_rarity": selected_stand["rarity"]
         }).eq(
             "twitch_id",
             twitch_id
         ).execute()
-
     # Create new user
     else:
-
-        supabase.table("stand_users").insert({
-            "twitch_id": twitch_id,
+        supabase.table("stand_users").update({
             "stand_name": selected_stand["name"],
-            "rarity": selected_stand["rarity"]
-        }).execute()
-
+            "rarity": selected_stand["rarity"],
+            "modifier": "Normal",
+            "effective_rarity": selected_stand["rarity"]
+        }).eq(
+            "twitch_id",
+            twitch_id
+        ).execute()
     return (
         f"{username}'s Stand has been set to "
         f"{selected_stand['name']} "
         f"[{selected_stand['rarity']}]!"
     )
+
+    #
+    # STAND SOUND
+    #
 
 @app.route("/standsound")
 def get_stand_sound():
