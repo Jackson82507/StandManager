@@ -33,25 +33,25 @@ supabase = create_client(
 MODIFIERS = [
     {
         "name": "Normal",
-        "chance": 98.0,
+        "chance": 60.0,
         "rarity_bonus": 0
     },
 
     {
         "name": "Shiny",
-        "chance": 1.5,
+        "chance": 20,
         "rarity_bonus": 1
     },
 
     {
         "name": "Rainbow",
-        "chance": 0.45,
+        "chance": 15,
         "rarity_bonus": 3
     },
 
     {
         "name": "Ethereal",
-        "chance": 0.05,
+        "chance": 5,
         "rarity_bonus": 5
     }
 ]
