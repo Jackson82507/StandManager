@@ -356,6 +356,22 @@ def get_stand():
         f"{stand_name} [{rarity}]!"
     )
 
+def roll_stand():
+
+    names = []
+    weights = []
+
+    for stand in STANDS:
+
+        names.append(stand)
+        weights.append(stand["weight"])
+
+    return random.choices(
+        names,
+        weights=weights,
+        k=1
+    )[0]
+
 def roll_modifier():
 
     modifiers = []
