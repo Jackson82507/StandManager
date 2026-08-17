@@ -359,24 +359,13 @@ def reroll():
 @app.route("/setstandcommand")
 def set_stand_command():
 
-    command = request.args.get("command")
+    username = request.args.get("username")
+    stand_name = request.args.get("stand")
     secret = request.args.get("secret")
 
     # Security
     if secret != API_SECRET:
         return "Unauthorized", 401
-
-    if not command:
-        return "Missing command", 400
-
-    # Split username and Stand at the FIRST |
-    parts = command.split("|", 1)
-
-    if len(parts) != 2:
-        return "Usage: username | stand name", 400
-
-    username = parts[0].strip()
-    stand_name = parts[1].strip()
 
     if not username:
         return "Missing username", 400
@@ -384,7 +373,10 @@ def set_stand_command():
     if not stand_name:
         return "Missing Stand name", 400
 
-    # Find Stand
+    # Convert underscores back into spaces
+    stand_name = stand_name.replace("_", " ")
+
+    # Find the Stand
     selected_stand = None
 
     for stand in STANDS:
@@ -396,13 +388,13 @@ def set_stand_command():
     if selected_stand is None:
         return f"Stand '{stand_name}' was not found.", 404
 
-    # Get Twitch ID
+    # Find Twitch user
     twitch_id = get_twitch_user_id(username)
 
     if twitch_id is None:
         return f"Twitch user '{username}' was not found.", 404
 
-    # Check database
+    # Check if user already exists
     result = (
         supabase
         .table("stand_users")
