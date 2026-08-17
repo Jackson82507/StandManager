@@ -234,6 +234,7 @@ STANDS = [
 
 def get_twitch_username_from_id(twitch_id):
 
+    # Get Twitch app access token
     token_response = requests.post(
         "https://id.twitch.tv/oauth2/token",
         params={
@@ -243,29 +244,45 @@ def get_twitch_username_from_id(twitch_id):
         }
     )
 
-    headers = {
-        "Client-ID": TWITCH_CLIENT_ID,
-        "Authorization": f"Bearer {TWITCH_ACCESS_TOKEN}"
-    }
+    print("Token status:", token_response.status_code)
 
-    response = requests.get(
+    if token_response.status_code != 200:
+        print("Twitch token error:")
+        print(token_response.text)
+        return None
+
+    # Extract the newly generated access token
+    access_token = token_response.json()["access_token"]
+
+    # Ask Twitch for the user by ID
+    user_response = requests.get(
         "https://api.twitch.tv/helix/users",
-        headers=headers,
         params={
             "id": twitch_id
+        },
+        headers={
+            "Client-ID": TWITCH_CLIENT_ID,
+            "Authorization": f"Bearer {access_token}"
         }
     )
 
-    if response.status_code != 200:
-        print("Twitch username lookup failed:", response.text)
+    print("User lookup status:", user_response.status_code)
+    print("User lookup response:", user_response.text)
+
+    if user_response.status_code != 200:
         return None
 
-    data = response.json().get("data", [])
+    users = user_response.json().get("data", [])
 
-    if not data:
+    if not users:
+        print(f"Twitch ID '{twitch_id}' was not found.")
         return None
 
-    return data[0]["display_name"]
+    username = users[0]["display_name"]
+
+    print(f"Found Twitch username: {username}")
+
+    return username
 
 def get_twitch_user_id(username):
 
