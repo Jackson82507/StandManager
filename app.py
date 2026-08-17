@@ -46,12 +46,12 @@ MODIFIERS = [
 ]
 
 RARITY_LEVELS = {
-    "COMMON": 0,
-    "UNCOMMON": 1,
-    "RARE": 2,
-    "EPIC": 3,
-    "LEGENDARY": 4,
-    "MYTHIC": 5
+    "Common": 0,
+    "Uncommon": 1,
+    "Rare": 2,
+    "Epic": 3,
+    "Legendary": 4,
+    "???": 5
 }
 
 RARITY_NAMES = [
@@ -222,8 +222,6 @@ STANDS = [
 ]
 
 def get_twitch_username_from_id(twitch_id):
-
-    # Get Twitch app access token
     token_response = requests.post(
         "https://id.twitch.tv/oauth2/token",
         params={
@@ -240,10 +238,8 @@ def get_twitch_username_from_id(twitch_id):
         print(token_response.text)
         return None
 
-    # Extract the newly generated access token
     access_token = token_response.json()["access_token"]
 
-    # Ask Twitch for the user by ID
     user_response = requests.get(
         "https://api.twitch.tv/helix/users",
         params={
@@ -379,12 +375,10 @@ def get_stand():
         if modifier.lower() in ["normal", "none"]:
             message = (
                 f"Your Stand is {stand_name}"
-                f" [{rarity}]"
             )
         else:
             message = (
                 f"Your Stand is {stand_name}"
-                f" [{rarity}]"
                 f" [{modifier}]"
             )
 
@@ -395,7 +389,6 @@ def get_stand():
     stand_name = stand["name"]
     rarity = stand["rarity"]
 
-    # Save Stand
     supabase.table("stand_users").insert({
         "twitch_id": twitch_id,
         "stand_name": stand_name,
@@ -445,7 +438,6 @@ def reroll_stand(twitch_id):
 
     modifier = roll_modifier()
 
-    # Save
     supabase.table("stand_users").update({
 
         "stand_name": stand["name"],
@@ -469,7 +461,6 @@ def reroll():
     username = request.args.get("username")
     secret = request.args.get("secret")
 
-    # Check API secret
     if secret != API_SECRET:
         return "Unauthorized", 401
 
@@ -479,7 +470,6 @@ def reroll():
     if not username:
         return "Missing username", 400
 
-    # Make sure the user has a Stand
     result = (
         supabase
         .table("stand_users")
@@ -489,9 +479,8 @@ def reroll():
     )
 
     if not result.data:
-        return "❌ You don't have a Stand yet.", 400
+        return "You don't have a Stand yet.", 400
 
-    # Roll the new Stand
     roll_result = reroll_stand(twitch_id)
 
     stand = roll_result["stand"]
@@ -519,7 +508,6 @@ def set_stand_command():
     stand_name = request.args.get("stand")
     secret = request.args.get("secret")
 
-    # Security
     if secret != API_SECRET:
         return "Unauthorized", 401
 
@@ -529,10 +517,8 @@ def set_stand_command():
     if not stand_name:
         return "Missing Stand name", 400
 
-    # Convert underscores back into spaces
     stand_name = stand_name.replace("_", " ")
 
-    # Find the Stand
     selected_stand = None
 
     for stand in STANDS:
@@ -544,13 +530,11 @@ def set_stand_command():
     if selected_stand is None:
         return f"Stand '{stand_name}' was not found.", 404
 
-    # Find Twitch user
     twitch_id = get_twitch_user_id(username)
 
     if twitch_id is None:
         return f"Twitch user '{username}' was not found.", 404
 
-    # Check if user already exists
     result = (
         supabase
         .table("stand_users")
@@ -559,7 +543,6 @@ def set_stand_command():
         .execute()
     )
 
-    # Update existing user
     if result.data:
         supabase.table("stand_users").update({
             "stand_name": selected_stand["name"],
@@ -569,7 +552,6 @@ def set_stand_command():
             "twitch_id",
             twitch_id
         ).execute()
-    # Create new user
     else:
         supabase.table("stand_users").update({
             "stand_name": selected_stand["name"],
