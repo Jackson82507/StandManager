@@ -497,11 +497,18 @@ def reroll():
     stand = roll_result["stand"]
     modifier = roll_result["modifier"]
 
-    return (
-        f"🌀 {username} rolled "
-        f"{stand['name']} "
-        f"[{modifier['name']}] "
-    )
+    if modifier["name"].lower() in ["normal", "none"]:
+        message = (
+            f"🌀 {username} rolled "
+            f"{stand['name']} "
+        )
+
+    else:
+        message = (
+            f"🌀 {username} rolled "
+            f"{stand['name']} "
+            f"[{modifier['name']}] "
+        )
 
 @app.route("/setstandcommand")
 def set_stand_command():
