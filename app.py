@@ -400,7 +400,6 @@ def reroll_stand(twitch_id):
         "stand_name": stand["name"],
         "rarity": stand["rarity"],
         "modifier": modifier["name"],
-        "effective_rarity": effective_rarity
 
     }).eq(
         "twitch_id",
@@ -521,7 +520,6 @@ def set_stand_command():
             "stand_name": selected_stand["name"],
             "rarity": selected_stand["rarity"],
             "modifier": "Normal",
-            "effective_rarity": selected_stand["rarity"]
         }).eq(
             "twitch_id",
             twitch_id
@@ -532,7 +530,6 @@ def set_stand_command():
             "stand_name": selected_stand["name"],
             "rarity": selected_stand["rarity"],
             "modifier": "Normal",
-            "effective_rarity": selected_stand["rarity"]
         }).eq(
             "twitch_id",
             twitch_id
