@@ -338,7 +338,7 @@ def roll_stand():
     modifier = roll_modifier()
 
     return {
-        "stand": stand,
+        "stand_name": stand,
         "modifier": modifier,
     }
 
@@ -365,7 +365,7 @@ def set_user_stand(
 
     data = {
         "twitch_id": twitch_id,
-        "stand": stand_name["name"],
+        "stand_name": stand_name["name"],
         "modifier": modifier["name"] if modifier else "Normal"
     }
 
