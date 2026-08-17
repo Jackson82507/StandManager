@@ -1,17 +1,8 @@
+from flask import Flask, request, jsonify
 import os
 import random
 import requests
-
-from pathlib import Path
-
-from flask import Flask, request, jsonify
-from supabase import create_client
-from dotenv import load_dotenv
-
-BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env")
-
-app = Flask(__name__)
+from supabase import create_client, Client
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -227,7 +218,6 @@ STANDS = [
     },
 
 ]
-
 
 def get_twitch_username_from_id(twitch_id):
 
@@ -459,14 +449,12 @@ def reroll_stand(twitch_id):
         "stand": stand,
         "modifier": modifier,
     }
-REROLL_COST = 500
 
 @app.route("/reroll")
 def reroll():
 
     twitch_id = request.args.get("twitch_id")
     username = request.args.get("username")
-    points = request.args.get("points")
     secret = request.args.get("secret")
 
     # Check API secret
@@ -509,6 +497,8 @@ def reroll():
             f"{stand['name']} "
             f"[{modifier['name']}] "
         )
+
+    return message
 
 @app.route("/setstandcommand")
 def set_stand_command():
@@ -582,46 +572,6 @@ def set_stand_command():
         f"{selected_stand['name']} "
         f"[{selected_stand['rarity']}]!"
     )
-
-    #
-    # STAND SOUND
-    #
-
-@app.route("/standsound")
-def get_stand_sound():
-
-    twitch_id = request.args.get("twitch_id")
-    secret = request.args.get("secret")
-
-    if secret != API_SECRET:
-        return "Unauthorized", 401
-
-    if not twitch_id:
-        return "Missing Twitch ID", 400
-
-    # Find the user's Stand
-    result = (
-        supabase
-        .table("stand_users")
-        .select("stand_name")
-        .eq("twitch_id", twitch_id)
-        .execute()
-    )
-
-    # User doesn't have a Stand
-    if not result.data:
-        return "NO_STAND", 404
-
-    stand_name = result.data[0]["stand_name"]
-
-    # Find that Stand in our editable list
-    for stand in STANDS:
-
-        if stand["name"] == stand_name:
-
-            return stand["sound"]
-
-    return "SOUND_NOT_FOUND", 404
 
 if __name__ == "__main__":
 
