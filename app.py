@@ -8,6 +8,11 @@ from flask import Flask, request, jsonify
 from supabase import create_client
 from dotenv import load_dotenv
 
+import asyncio
+import json
+import uuid
+import websockets
+
 
 # ============================================================
 # CONFIGURATION
@@ -24,10 +29,6 @@ API_SECRET = os.getenv("API_SECRET")
 
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
-
-STREAMELEMENTS_CHANNEL_ID = os.getenv("STREAMELEMENTS_CHANNEL_ID")
-STREAMELEMENTS_JWT = os.getenv("STREAMELEMENTS_JWT")
-REROLL_COST = int(os.getenv("REROLL_COST", "500"))
 
 supabase = create_client(
     SUPABASE_URL,
@@ -236,28 +237,71 @@ STANDS = [
 
 ]
 
-def deduct_streamelements_points(username, amount):
+async def streamelements_listener():
 
-    url = (
-        f"https://api.streamelements.com/kappa/v2/points/"
-        f"{STREAMELEMENTS_CHANNEL_ID}/{username}/-{amount}"
-    )
+    uri = "wss://astro.streamelements.com"
 
-    headers = {
-        "Authorization": f"Bearer {STREAMELEMENTS_JWT}",
-        "Accept": "application/json"
-    }
+    while True:
 
-    response = requests.put(
-        url,
-        headers=headers,
-        timeout=10
-    )
+        try:
 
-    print("StreamElements deduction status:", response.status_code)
-    print("StreamElements deduction response:", response.text)
+            async with websockets.connect(uri) as websocket:
 
-    return response.status_code == 200
+                print("Connected to StreamElements WebSocket")
+
+                async for raw_message in websocket:
+
+                    message = json.loads(raw_message)
+
+                    message_type = message.get("type")
+
+                    # StreamElements is ready
+                    if message_type == "welcome":
+
+                        print("StreamElements WebSocket authenticated")
+
+                        await websocket.send(json.dumps({
+                            "type": "subscribe",
+                            "nonce": str(uuid.uuid4()),
+                            "data": {
+                                "topic": "channel.loyalty.redemptions",
+                                "room": STREAMELEMENTS_CHANNEL_ID,
+                                "token": STREAMELEMENTS_JWT,
+                                "token_type": "jwt"
+                            }
+                        }))
+
+                    # Subscription response
+                    elif message_type == "response":
+
+                        print("StreamElements response:")
+                        print(message)
+
+                    # Actual event
+                    elif message_type == "message":
+
+                        if message.get("topic") != "channel.loyalty.redemptions":
+                            continue
+
+                        print("LOYALTY REDEMPTION:")
+                        print(json.dumps(message, indent=2))
+
+                        await handle_redemption(message)
+
+        except Exception as e:
+
+            print("StreamElements WebSocket error:", e)
+            print("Reconnecting in 5 seconds...")
+
+            await asyncio.sleep(5)
+
+async def handle_redemption(message):
+
+    data = message.get("data", {})
+
+    print("Redemption data:")
+    print(json.dumps(data, indent=2))
+
 
 def get_twitch_username_from_id(twitch_id):
 
@@ -509,20 +553,6 @@ def reroll():
     if not username:
         return "Missing username", 400
 
-    # Convert points to integer
-    try:
-        points = int(points)
-    except (TypeError, ValueError):
-        return "Could not determine your loyalty points.", 400
-
-    # Check points
-    if points < REROLL_COST:
-        return (
-            f"❌ {username}, you don't have enough points! "
-            f"You have {points:,} points, but need "
-            f"{REROLL_COST:,} points to reroll."
-        )
-
     # Make sure the user has a Stand
     result = (
         supabase
@@ -542,13 +572,11 @@ def reroll():
 
     stand = roll_result["stand"]
     modifier = roll_result["modifier"]
-    effective_rarity = roll_result["effective_rarity"]
 
     return (
         f"🌀 {username} rolled "
         f"{stand['name']} "
         f"[{modifier['name']}] "
-        f"[{effective_rarity}]!"
     )
 
 @app.route("/setstandcommand")
@@ -668,10 +696,23 @@ def get_stand_sound():
 # RUN SERVER
 # ============================================================
 
+import threading
+
+
+def start_streamelements_listener():
+    asyncio.run(streamelements_listener())
+
+
 if __name__ == "__main__":
+
+    websocket_thread = threading.Thread(
+        target=start_streamelements_listener,
+        daemon=True
+    )
+
+    websocket_thread.start()
 
     app.run(
         host="0.0.0.0",
-        port=5000,
-        debug=True
+        port=5000
     )
