@@ -128,6 +128,7 @@ def reroll():
         message = (
             f"{username} rolled "
             f"{stand['name']} "
+            f"[{modifier['name']}] "
         )
 
     else:
