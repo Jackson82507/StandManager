@@ -25,6 +25,10 @@ API_SECRET = os.getenv("API_SECRET")
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
 
+STREAMELEMENTS_CHANNEL_ID = os.getenv("STREAMELEMENTS_CHANNEL_ID")
+STREAMELEMENTS_JWT = os.getenv("STREAMELEMENTS_JWT")
+REROLL_COST = int(os.getenv("REROLL_COST", "500"))
+
 supabase = create_client(
     SUPABASE_URL,
     SUPABASE_KEY
@@ -231,6 +235,29 @@ STANDS = [
     },
 
 ]
+
+def deduct_streamelements_points(username, amount):
+
+    url = (
+        f"https://api.streamelements.com/kappa/v2/points/"
+        f"{STREAMELEMENTS_CHANNEL_ID}/{username}/-{amount}"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {STREAMELEMENTS_JWT}",
+        "Accept": "application/json"
+    }
+
+    response = requests.put(
+        url,
+        headers=headers,
+        timeout=10
+    )
+
+    print("StreamElements deduction status:", response.status_code)
+    print("StreamElements deduction response:", response.text)
+
+    return response.status_code == 200
 
 def get_twitch_username_from_id(twitch_id):
 
@@ -472,6 +499,7 @@ def reroll():
     points = request.args.get("points")
     secret = request.args.get("secret")
 
+    # Check API secret
     if secret != API_SECRET:
         return "Unauthorized", 401
 
@@ -479,21 +507,23 @@ def reroll():
         return "Missing Twitch ID", 400
 
     if not username:
-        username = "You"
+        return "Missing username", 400
 
+    # Convert points to integer
     try:
         points = int(points)
     except (TypeError, ValueError):
         return "Could not determine your loyalty points.", 400
 
-    # POINT CHECK
+    # Check points
     if points < REROLL_COST:
         return (
             f"❌ {username}, you don't have enough points! "
             f"You have {points:,} points, but need "
             f"{REROLL_COST:,} points to reroll."
         )
-    # Check user exists
+
+    # Make sure the user has a Stand
     result = (
         supabase
         .table("stand_users")
@@ -503,43 +533,22 @@ def reroll():
     )
 
     if not result.data:
-        return (
-            f"{username} does not have a Stand yet.",
-            400
-        )
+        return "❌ You don't have a Stand yet.", 400
 
-    username = get_twitch_username_from_id(twitch_id)
+    deduct_streamelements_points(username, 1000)
 
-    if not username:
-        username = "You"
-    
-    # Roll new Stand
-    result = reroll_stand(twitch_id)
+    # Roll the new Stand
+    roll_result = reroll_stand(twitch_id)
 
-    stand = result["stand"]
-    modifier = result["modifier"]
-
-    # Format display name
-    if modifier["name"] == "Normal":
-
-        display_name = stand["name"]
-
-    else:
-
-        display_name = (
-            f"{modifier['name']} "
-            f"{stand['name']}"
-        )
-
-    if modifier["name"] == "Normal":
-        modifier_text = ""
-    else:
-        modifier_text = f" [{modifier['name']}]"
+    stand = roll_result["stand"]
+    modifier = roll_result["modifier"]
+    effective_rarity = roll_result["effective_rarity"]
 
     return (
-        f"{username} rolled "
-        f"{stand['name']}"
-        f"{modifier_text} "
+        f"🌀 {username} rolled "
+        f"{stand['name']} "
+        f"[{modifier['name']}] "
+        f"[{effective_rarity}]!"
     )
 
 @app.route("/setstandcommand")
