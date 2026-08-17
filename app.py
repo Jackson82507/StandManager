@@ -408,12 +408,6 @@ def reroll():
     if not twitch_id:
         return "Missing id", 400
 
-    # Find Twitch ID
-    twitch_id = get_twitch_user_id(username)
-
-    if twitch_id is None:
-        return f"Twitch user '{username}' was not found.", 404
-
     # Check user exists
     result = (
         supabase
