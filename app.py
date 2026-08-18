@@ -277,7 +277,7 @@ def battle():
 
     if queue_position == 0:
         return (
-            f"⚔️ {username}'s "
+            f"{username}'s "
             f"{player_stand['stand_name']} VS "
             f"{opponent_username}'s "
             f"{opponent_stand['stand_name']} "
@@ -285,7 +285,7 @@ def battle():
         )
 
     return (
-        f"⚔️ {username}'s "
+        f"{username}'s "
         f"{player_stand['stand_name']} VS "
         f"{opponent_username}'s "
         f"{opponent_stand['stand_name']} "
