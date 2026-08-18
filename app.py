@@ -31,6 +31,7 @@ from StandSystem import (
 from BattleSystem import (
     run_battle,
     get_active_battle,
+    consume_active_battle,
     clear_active_battle
 )
 
@@ -244,7 +245,7 @@ def battle_screen():
 @app.route("/battle-state")
 def battle_state():
 
-    battle = get_active_battle()
+    battle = consume_active_battle()
 
     if not battle:
         return jsonify({
@@ -255,6 +256,7 @@ def battle_state():
         "active": True,
         "battle": battle
     })
+
 
 if __name__ == "__main__":
 

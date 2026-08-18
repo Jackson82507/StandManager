@@ -382,22 +382,26 @@ def run_battle(
 
     return ACTIVE_BATTLE
 
-
-# ============================================================
-# GET ACTIVE BATTLE
-# ============================================================
-
 def get_active_battle():
-
     return ACTIVE_BATTLE
 
 
-# ============================================================
-# CLEAR ACTIVE BATTLE
-# ============================================================
+def consume_active_battle():
+
+    global ACTIVE_BATTLE
+
+    if ACTIVE_BATTLE is None:
+        return None
+
+    battle = ACTIVE_BATTLE
+
+    # Remove it immediately
+    ACTIVE_BATTLE = None
+
+    return battle
+
 
 def clear_active_battle():
 
     global ACTIVE_BATTLE
-
     ACTIVE_BATTLE = None

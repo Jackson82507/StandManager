@@ -190,6 +190,10 @@ let eventTimer = null;
 
 async function updateBattle() {
 
+    if (currentBattleId !== null) {
+        return;
+    }
+
     try {
 
         const response = await fetch(
@@ -204,15 +208,12 @@ async function updateBattle() {
 
         const battle = data.battle;
 
-        if (currentBattleId !== battle.battle_id) {
+        currentBattleId = battle.battle_id;
+        currentEventIndex = 0;
 
-            currentBattleId = battle.battle_id;
-            currentEventIndex = 0;
+        setupBattle(battle);
 
-            setupBattle(battle);
-
-            playNextEvent(battle);
-        }
+        playNextEvent(battle);
 
     }
     catch (error) {
@@ -220,7 +221,6 @@ async function updateBattle() {
         console.log(error);
 
     }
-
 }
 
 
