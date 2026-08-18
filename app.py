@@ -121,14 +121,13 @@ def reroll():
     if not result:
         return "❌ Reroll failed.", 500
 
-    stand = result["stand_name"]
+    stand = result["stand"]
     modifier = result["modifier"]
 
     if modifier["name"].lower() in ["normal", "none"]:
         message = (
             f"{username} rolled "
             f"{stand['name']} "
-            f"[{modifier['name']}] "
         )
 
     else:
