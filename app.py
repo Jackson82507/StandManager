@@ -134,7 +134,7 @@ def reroll():
         message = (
             f"{username} rolled "
             f"{stand['name']} "
-            f"[{modifier['name']}] "
+            f"[{modifier}] "
         )
 
     return message
