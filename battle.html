@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Stand Battle</title>
+
+    <style>
+
+        body {
+            margin: 0;
+            background: transparent;
+            font-family: Arial, sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+
+        #battle {
+            display: none;
+
+            width: 900px;
+            height: 400px;
+
+            margin: 40px auto;
+
+            background: rgba(0, 0, 0, 0.85);
+
+            border: 4px solid white;
+            border-radius: 20px;
+
+            padding: 30px;
+
+            box-sizing: border-box;
+        }
+
+        .fighters {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .fighter {
+            width: 42%;
+        }
+
+        .fighter.right {
+            text-align: right;
+        }
+
+        .username {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .stand-name {
+            font-size: 22px;
+            margin-top: 5px;
+        }
+
+        .hp-background {
+            width: 100%;
+            height: 28px;
+
+            background: #333;
+
+            margin-top: 15px;
+
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .hp-bar {
+            height: 100%;
+            width: 100%;
+
+            background: #22c55e;
+
+            transition: width 0.7s ease;
+        }
+
+        .hp-text {
+            margin-top: 5px;
+            font-size: 18px;
+        }
+
+        #event-text {
+            margin-top: 60px;
+
+            text-align: center;
+
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        #damage-text {
+            margin-top: 20px;
+
+            text-align: center;
+
+            font-size: 38px;
+            font-weight: bold;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div id="battle">
+
+    <div class="fighters">
+
+        <div class="fighter">
+
+            <div
+                id="player1-name"
+                class="username">
+            </div>
+
+            <div
+                id="player1-stand"
+                class="stand-name">
+            </div>
+
+            <div class="hp-background">
+
+                <div
+                    id="player1-hp"
+                    class="hp-bar">
+                </div>
+
+            </div>
+
+            <div
+                id="player1-hp-text"
+                class="hp-text">
+            </div>
+
+        </div>
+
+
+        <div class="fighter right">
+
+            <div
+                id="player2-name"
+                class="username">
+            </div>
+
+            <div
+                id="player2-stand"
+                class="stand-name">
+            </div>
+
+            <div class="hp-background">
+
+                <div
+                    id="player2-hp"
+                    class="hp-bar">
+                </div>
+
+            </div>
+
+            <div
+                id="player2-hp-text"
+                class="hp-text">
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div id="event-text"></div>
+
+    <div id="damage-text"></div>
+
+</div>
+
+
+<script>
+
+let currentBattleId = null;
+let currentEventIndex = 0;
+
+let eventTimer = null;
+
+
+async function updateBattle() {
+
+    try {
+
+        const response = await fetch(
+            "/battle-state"
+        );
+
+        const data = await response.json();
+
+        if (!data.active) {
+            return;
+        }
+
+        const battle = data.battle;
+
+        if (currentBattleId !== battle.battle_id) {
+
+            currentBattleId = battle.battle_id;
+            currentEventIndex = 0;
+
+            setupBattle(battle);
+
+            playNextEvent(battle);
+        }
+
+    }
+    catch (error) {
+
+        console.log(error);
+
+    }
+
+}
+
+
+function setupBattle(battle) {
+
+    document.getElementById(
+        "battle"
+    ).style.display = "block";
+
+
+    document.getElementById(
+        "player1-name"
+    ).textContent =
+        battle.player1.username;
+
+
+    document.getElementById(
+        "player1-stand"
+    ).textContent =
+        battle.player1.stand;
+
+
+    document.getElementById(
+        "player2-name"
+    ).textContent =
+        battle.player2.username;
+
+
+    document.getElementById(
+        "player2-stand"
+    ).textContent =
+        battle.player2.stand;
+
+
+    updateHP(
+        battle.player1.max_hp,
+        battle.player1.max_hp,
+        battle.player2.max_hp,
+        battle.player2.max_hp
+    );
+
+}
+
+
+function playNextEvent(battle) {
+
+    if (
+        currentEventIndex >=
+        battle.events.length
+    ) {
+
+        setTimeout(() => {
+
+            document.getElementById(
+                "battle"
+            ).style.display = "none";
+
+        }, 5000);
+
+        return;
+    }
+
+
+    const event =
+        battle.events[currentEventIndex];
+
+
+    const eventText =
+        document.getElementById(
+            "event-text"
+        );
+
+
+    const damageText =
+        document.getElementById(
+            "damage-text"
+        );
+
+
+    eventText.textContent =
+        event.text || "";
+
+
+    damageText.textContent = "";
+
+
+    if (event.type === "attack") {
+
+        updateHP(
+            event.player1_hp,
+            battle.player1.max_hp,
+
+            event.player2_hp,
+            battle.player2.max_hp
+        );
+
+
+        if (event.critical) {
+
+            damageText.textContent =
+                "CRITICAL! " +
+                event.damage +
+                " DAMAGE!";
+
+        }
+
+        else {
+
+            damageText.textContent =
+                event.damage +
+                " DAMAGE";
+
+        }
+
+    }
+
+
+    if (event.type === "victory") {
+
+        damageText.textContent =
+            "🏆 " +
+            event.winner +
+            " WINS!";
+
+    }
+
+
+    currentEventIndex++;
+
+
+    eventTimer = setTimeout(
+        () => playNextEvent(battle),
+        2500
+    );
+
+}
+
+
+function updateHP(
+    player1HP,
+    player1MaxHP,
+    player2HP,
+    player2MaxHP
+) {
+
+    const player1Percent =
+        Math.max(
+            0,
+            (player1HP / player1MaxHP) * 100
+        );
+
+
+    const player2Percent =
+        Math.max(
+            0,
+            (player2HP / player2MaxHP) * 100
+        );
+
+
+    document.getElementById(
+        "player1-hp"
+    ).style.width =
+        player1Percent + "%";
+
+
+    document.getElementById(
+        "player2-hp"
+    ).style.width =
+        player2Percent + "%";
+
+
+    document.getElementById(
+        "player1-hp-text"
+    ).textContent =
+        player1HP +
+        " / " +
+        player1MaxHP;
+
+
+    document.getElementById(
+        "player2-hp-text"
+    ).textContent =
+        player2HP +
+        " / " +
+        player2MaxHP;
+
+}
+
+
+setInterval(
+    updateBattle,
+    1000
+);
+
+</script>
+
+
+</body>
+
+</html>
