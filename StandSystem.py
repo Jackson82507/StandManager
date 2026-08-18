@@ -362,7 +362,7 @@ def set_user_stand(
     data = {
         "twitch_id": twitch_id,
         "stand_name": stand_name,
-        "modifier": modifier["name"] if modifier else "Normal"
+        "modifier": modifier if modifier else "Normal"
     }
 
     result = (
