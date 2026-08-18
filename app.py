@@ -43,6 +43,7 @@ def get_stand():
     if not twitch_id:
         return "Missing Twitch ID", 400
 
+    # Check if the user already has a Stand
     result = (
         supabase
         .table("stand_users")
@@ -51,38 +52,40 @@ def get_stand():
         .execute()
     )
 
+    # User already has a Stand
     if result.data:
 
         stand_name = result.data[0]["stand_name"]
         rarity = result.data[0]["rarity"]
-        modifier = result.data[0]["modifier"]
+        modifier = result.data[0]["modifier"] or "Normal"
 
         if modifier.lower() in ["normal", "none"]:
-            message = (
-                f"Your Stand is {stand_name}"
-            )
-        else:
-            message = (
-                f"Your Stand is {stand_name}"
-                f" [{modifier}]"
-            )
+            return f"Your Stand is {stand_name}"
 
-        return message
+        return (
+            f"Your Stand is {stand_name} "
+            f"[{modifier}]"
+        )
 
-    stand = get_random_stand()
+    # User doesn't have a Stand yet
+    roll_result = roll_stand_for_user(twitch_id)
+
+    stand = roll_result["stand"]
+    modifier = roll_result["modifier"]
 
     stand_name = stand["name"]
     rarity = stand["rarity"]
 
-    supabase.table("stand_users").insert({
-        "twitch_id": twitch_id,
-        "stand_name": stand_name,
-        "rarity": rarity
-    }).execute()
+    if modifier.lower() in ["normal", "none"]:
+        return (
+            f"You have received "
+            f"{stand_name} [{rarity}]!"
+        )
 
     return (
-        f" You have received "
-        f"{stand_name} [{rarity}]!"
+        f"You have received "
+        f"{stand_name} [{rarity}] "
+        f"[{modifier}]!"
     )
 
 
