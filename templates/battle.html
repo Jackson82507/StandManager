@@ -268,20 +268,52 @@ function setupBattle(battle) {
 function playNextEvent(battle) {
 
     if (
-        currentEventIndex >=
-        battle.events.length
-    ) {
+    currentEventIndex >=
+    battle.events.length
+) {
 
-        setTimeout(() => {
+    setTimeout(async () => {
 
-            document.getElementById(
-                "battle"
-            ).style.display = "none";
+        document.getElementById(
+            "battle"
+        ).style.display = "none";
 
-        }, 5000);
+        // Tell Flask the battle animation finished
+        try {
 
-        return;
-    }
+            await fetch(
+                "/battle-complete",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        battle_id: battle.battle_id
+                    })
+                }
+            );
+
+        }
+        catch (error) {
+
+            console.log(
+                "Could not complete battle:",
+                error
+            );
+
+        }
+
+        // Reset local state
+        currentBattleId = null;
+        currentEventIndex = 0;
+
+    }, 5000);
+
+    return;
+}
 
 
     const event =
