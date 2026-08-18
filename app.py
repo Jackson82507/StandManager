@@ -30,9 +30,11 @@ from StandSystem import (
 
 from BattleSystem import (
     run_battle,
-    get_active_battle,
-    consume_active_battle,
-    clear_active_battle
+    queue_battle,
+    claim_active_battle,
+    complete_active_battle,
+    get_queue_size,
+    clear_battles
 )
 
 @app.route("/")
@@ -253,7 +255,7 @@ def battle():
         return f"{opponent_username} doesn't have a Stand.", 400
 
     # Run the battle
-    result = run_battle(
+    battle_data = run_battle(
         {
             "username": username,
             "twitch_id": twitch_id,
@@ -266,18 +268,42 @@ def battle():
         }
     )
 
-    if not result:
+    if not battle_data:
         return "Battle failed.", 500
 
-    # Final event contains the winner
-    winner_event = result["events"][-1]
+    queue_position = queue_battle(
+        battle_data
+    )
+
+    if queue_position == 0:
+        return (
+            f"⚔️ {username}'s "
+            f"{player_stand['stand_name']} VS "
+            f"{opponent_username}'s "
+            f"{opponent_stand['stand_name']} "
+            f"is starting!"
+        )
 
     return (
         f"⚔️ {username}'s "
+        f"{player_stand['stand_name']} VS "
+        f"{opponent_username}'s "
+        f"{opponent_stand['stand_name']} "
+        f"has been queued! "
+        f"Queue position: {queue_position}"
+    )
+
+    if not result:
+        return "Battle failed.", 500
+
+    winner_event = result["events"][-1]
+
+    return (
+        f"{username}'s "
         f"{player_stand['stand_name']} battled "
         f"{opponent_username}'s "
         f"{opponent_stand['stand_name']}! "
-        f"🏆 {winner_event['winner']} wins with "
+        f"{winner_event['winner']} wins with "
         f"{winner_event['winner_stand']}!"
     )
 
@@ -290,9 +316,10 @@ def battle_screen():
 @app.route("/battle-state")
 def battle_state():
 
-    battle = consume_active_battle()
+    battle = claim_active_battle()
 
     if not battle:
+
         return jsonify({
             "active": False
         })
@@ -302,6 +329,43 @@ def battle_state():
         "battle": battle
     })
 
+@app.route("/battle-complete", methods=["POST"])
+def battle_complete():
+
+    data = request.get_json(
+        silent=True
+    )
+
+    if not data:
+
+        return jsonify({
+            "success": False,
+            "error": "Missing JSON"
+        }), 400
+
+
+    battle_id = data.get(
+        "battle_id"
+    )
+
+
+    if not battle_id:
+
+        return jsonify({
+            "success": False,
+            "error": "Missing battle ID"
+        }), 400
+
+
+    success = complete_active_battle(
+        battle_id
+    )
+
+
+    return jsonify({
+        "success": success,
+        "queue_size": get_queue_size()
+    })
 
 if __name__ == "__main__":
     app.run(

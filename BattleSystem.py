@@ -1,5 +1,7 @@
 import random
 import uuid
+import threading
+from collections import deque
 
 
 # ============================================================
@@ -7,6 +9,10 @@ import uuid
 # ============================================================
 
 ACTIVE_BATTLE = None
+
+BATTLE_QUEUE = deque()
+
+BATTLE_LOCK = threading.Lock()
 
 
 # ============================================================
@@ -126,8 +132,6 @@ def run_battle(
     player1,
     player2
 ):
-
-    global ACTIVE_BATTLE
 
 
     # --------------------------------------------------------
@@ -348,7 +352,7 @@ def run_battle(
     # SAVE CURRENT BATTLE FOR OBS
     # --------------------------------------------------------
 
-    ACTIVE_BATTLE = {
+    battle_data = {
 
         "battle_id": battle_id,
 
@@ -376,32 +380,110 @@ def run_battle(
 
         "events": events,
 
-        "finished": True
+        # OBS has not grabbed this battle yet
+        "claimed": False
     }
 
+    return battle_data
 
-    return ACTIVE_BATTLE
-
-def get_active_battle():
-    return ACTIVE_BATTLE
-
-
-def consume_active_battle():
+def queue_battle(battle_data):
 
     global ACTIVE_BATTLE
 
-    if ACTIVE_BATTLE is None:
-        return None
+    with BATTLE_LOCK:
 
-    battle = ACTIVE_BATTLE
+        battle_data["claimed"] = False
 
-    # Remove it immediately
-    ACTIVE_BATTLE = None
+        # No battle currently running
+        if ACTIVE_BATTLE is None:
 
-    return battle
+            ACTIVE_BATTLE = battle_data
+
+            # 0 means it starts immediately
+            return 0
+
+        # Battle already happening
+        BATTLE_QUEUE.append(battle_data)
+
+        # 1 = first waiting battle
+        # 2 = second waiting battle
+        # etc.
+        return len(BATTLE_QUEUE)
 
 
-def clear_active_battle():
+# ============================================================
+# OBS CLAIMS ACTIVE BATTLE
+# ============================================================
+
+def claim_active_battle():
 
     global ACTIVE_BATTLE
-    ACTIVE_BATTLE = None
+
+    with BATTLE_LOCK:
+
+        if ACTIVE_BATTLE is None:
+            return None
+
+        # OBS already grabbed this battle.
+        # Don't send it again.
+        if ACTIVE_BATTLE.get("claimed", False):
+            return None
+
+        ACTIVE_BATTLE["claimed"] = True
+
+        return ACTIVE_BATTLE
+
+
+# ============================================================
+# COMPLETE ACTIVE BATTLE
+# ============================================================
+
+def complete_active_battle(battle_id):
+
+    global ACTIVE_BATTLE
+
+    with BATTLE_LOCK:
+
+        if ACTIVE_BATTLE is None:
+            return False
+
+        # Make sure OBS is finishing the correct battle
+        if ACTIVE_BATTLE["battle_id"] != battle_id:
+            return False
+
+        # Current battle is finished
+        ACTIVE_BATTLE = None
+
+        # Start the next queued battle
+        if BATTLE_QUEUE:
+
+            ACTIVE_BATTLE = BATTLE_QUEUE.popleft()
+
+            ACTIVE_BATTLE["claimed"] = False
+
+        return True
+
+
+# ============================================================
+# GET QUEUE SIZE
+# ============================================================
+
+def get_queue_size():
+
+    with BATTLE_LOCK:
+        return len(BATTLE_QUEUE)
+
+
+# ============================================================
+# CLEAR EVERYTHING
+# ============================================================
+
+def clear_battles():
+
+    global ACTIVE_BATTLE
+
+    with BATTLE_LOCK:
+
+        ACTIVE_BATTLE = None
+
+        BATTLE_QUEUE.clear()

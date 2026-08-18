@@ -190,6 +190,8 @@ let eventTimer = null;
 
 async function updateBattle() {
 
+    // Don't request another battle
+    // while one is currently playing.
     if (currentBattleId !== null) {
         return;
     }
@@ -267,20 +269,14 @@ function setupBattle(battle) {
 
 function playNextEvent(battle) {
 
-    if (
-    currentEventIndex >=
-    battle.events.length
-) {
+    if (currentEventIndex >= battle.events.length) {
 
+    // Leave winner visible for 5 seconds
     setTimeout(async () => {
 
-        document.getElementById(
-            "battle"
-        ).style.display = "none";
-
-        // Tell Flask the battle animation finished
         try {
 
+            // Tell Flask this battle is finished
             await fetch(
                 "/battle-complete",
                 {
@@ -306,9 +302,30 @@ function playNextEvent(battle) {
 
         }
 
-        // Reset local state
+
+        // Hide overlay
+        document.getElementById(
+            "battle"
+        ).style.display = "none";
+
+
+        // Clear battle text
+        document.getElementById(
+            "event-text"
+        ).textContent = "";
+
+        document.getElementById(
+            "damage-text"
+        ).textContent = "";
+
+
+        // Allow another battle to begin
         currentBattleId = null;
         currentEventIndex = 0;
+
+
+        // Check immediately for next queued battle
+        updateBattle();
 
     }, 5000);
 
