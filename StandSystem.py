@@ -313,7 +313,7 @@ def get_twitch_username_from_id(twitch_id):
 
 def roll_modifier():
 
-    roll = random.random()
+    roll = random.uniform(0, 100)
 
     current = 0
 
@@ -322,7 +322,6 @@ def roll_modifier():
         current += modifier["chance"]
 
         if roll <= current:
-
             return modifier
 
     return MODIFIERS[0]
