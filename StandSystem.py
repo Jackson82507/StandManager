@@ -354,7 +354,7 @@ def get_user_stand(twitch_id):
 
 def set_user_stand(
     twitch_id,
-    stand_name["name"],
+    stand_name,
     modifier=None,
 ):
 
