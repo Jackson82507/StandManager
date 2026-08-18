@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import os
 import random
 import requests
@@ -28,7 +28,10 @@ from StandSystem import (
     set_user_stand
 )
 
-from BattleSystem import run_battle
+from BattleSystem import (
+    run_battle,
+    get_active_battle
+)
 
 @app.route("/")
 def home():
@@ -285,13 +288,33 @@ def battle():
     winner = result["winner"]
 
     return (
-        f"⚔️ {username}'s "
+        f"{username}'s "
         f"{player_stand['stand_name']} battled "
         f"{opponent_username}'s "
         f"{opponent_stand['stand_name']}! "
-        f"🏆 {winner['username']} wins with "
+        f"{winner['username']} wins with "
         f"{winner['stand_name']}!"
     )
+
+@app.route("/battle-screen")
+def battle_screen():
+
+    return render_template("battle.html")
+
+@app.route("/battle-state")
+def battle_state():
+
+    battle = get_active_battle()
+
+    if not battle:
+        return jsonify({
+            "active": False
+        })
+
+    return jsonify({
+        "active": True,
+        "battle": battle
+    })
 
 if __name__ == "__main__":
 
