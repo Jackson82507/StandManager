@@ -250,11 +250,15 @@ def battle():
         opponent_id
     )
 
+    print("BATTLE USERNAME:", username)
+    print("BATTLE TWITCH ID:", twitch_id)
+
+    player_stand = get_user_stand(twitch_id)
+
+    print("PLAYER STAND RESULT:", player_stand)
+
     if not player_stand:
-        return (
-            f"{username} doesn't have a Stand.",
-            400
-        )
+        return f"{username} doesn't have a Stand.", 400
 
     if not opponent_stand:
         return (
