@@ -28,10 +28,7 @@ from StandSystem import (
     set_user_stand
 )
 
-from BattleSystem import (
-    create_battle,
-    get_battle
-)
+from BattleSystem import run_battle
 
 @app.route("/")
 def home():
@@ -203,6 +200,90 @@ def set_stand_command():
         f"{username}'s Stand has been set to "
         f"{selected_stand['name']} "
         f"[{selected_stand['rarity']}]!"
+    )
+
+@app.route("/battle")
+def battle():
+
+    twitch_id = request.args.get("twitch_id")
+    username = request.args.get("username")
+    opponent_username = request.args.get("opponent")
+    secret = request.args.get("secret")
+
+    if secret != API_SECRET:
+        return "Unauthorized", 401
+
+    if not twitch_id:
+        return "Missing Twitch ID", 400
+
+    if not username:
+        return "Missing username", 400
+
+    if not opponent_username:
+        return "Missing opponent", 400
+
+    # Prevent battling yourself
+    if username.lower() == opponent_username.lower():
+        return "You can't battle yourself!", 400
+
+    # Get opponent Twitch ID
+    opponent_id = get_twitch_user_id(
+        opponent_username
+    )
+
+    if not opponent_id:
+        return (
+            f"Could not find Twitch user "
+            f"{opponent_username}.",
+            404
+        )
+
+    # Get both Stands
+    player_stand = get_user_stand(
+        twitch_id
+    )
+
+    opponent_stand = get_user_stand(
+        opponent_id
+    )
+
+    if not player_stand:
+        return (
+            f"{username} doesn't have a Stand.",
+            400
+        )
+
+    if not opponent_stand:
+        return (
+            f"{opponent_username} doesn't "
+            f"have a Stand.",
+            400
+        )
+
+    # Run battle
+    result = run_battle(
+        {
+            "username": username,
+            "twitch_id": twitch_id,
+            "stand": player_stand,
+        },
+
+        {
+            "username": opponent_username,
+            "twitch_id": opponent_id,
+            "stand": opponent_stand,
+        }
+    )
+
+    winner = result["winner"]
+
+    return (
+        f"⚔️ {username}'s "
+        f"{player_stand['stand_name']} battled "
+        f"{opponent_username}'s "
+        f"{opponent_stand['stand_name']}! "
+        f"🏆 {winner['username']} wins with "
+        f"{winner['stand_name']}!"
     )
 
 if __name__ == "__main__":
