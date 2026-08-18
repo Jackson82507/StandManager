@@ -210,19 +210,6 @@ def set_stand_command():
         f"[{selected_stand['rarity']}]!"
     )
 
-result = run_battle(
-    {
-        "username": username,
-        "twitch_id": twitch_id,
-        "stand": player_stand,
-    },
-    {
-        "username": opponent_username,
-        "twitch_id": opponent_id,
-        "stand": opponent_stand,
-    }
-)
-
 @app.route("/battle")
 def battle():
 
@@ -231,11 +218,9 @@ def battle():
     opponent_username = request.args.get("opponent")
     secret = request.args.get("secret")
 
-    # Check API secret
     if secret != API_SECRET:
         return "Unauthorized", 401
 
-    # Make sure required information exists
     if not twitch_id:
         return "Missing Twitch ID", 400
 
@@ -245,58 +230,29 @@ def battle():
     if not opponent_username:
         return "Missing opponent", 400
 
-    # Prevent battling yourself
     if username.lower() == opponent_username.lower():
         return "You can't battle yourself!", 400
 
-
-    # ==========================================
-    # GET OPPONENT TWITCH ID
-    # ==========================================
-
-    opponent_id = get_twitch_user_id(
-        opponent_username
-    )
+    # Get opponent Twitch ID
+    opponent_id = get_twitch_user_id(opponent_username)
 
     if not opponent_id:
         return (
-            f"Could not find Twitch user "
-            f"{opponent_username}.",
+            f"Could not find Twitch user {opponent_username}.",
             404
         )
 
-
-    # ==========================================
-    # GET BOTH STANDS
-    # ==========================================
-
-    player_stand = get_user_stand(
-        twitch_id
-    )
-
-    opponent_stand = get_user_stand(
-        opponent_id
-    )
-
+    # Get both users' Stands
+    player_stand = get_user_stand(twitch_id)
+    opponent_stand = get_user_stand(opponent_id)
 
     if not player_stand:
-        return (
-            f"{username} doesn't have a Stand.",
-            400
-        )
-
+        return f"{username} doesn't have a Stand.", 400
 
     if not opponent_stand:
-        return (
-            f"{opponent_username} doesn't have a Stand.",
-            400
-        )
+        return f"{opponent_username} doesn't have a Stand.", 400
 
-
-    # ==========================================
-    # RUN BATTLE
-    # ==========================================
-
+    # Run the battle
     result = run_battle(
         {
             "username": username,
@@ -310,18 +266,11 @@ def battle():
         }
     )
 
-
     if not result:
         return "Battle failed.", 500
 
-
-    # Last event is always the victory event
+    # Final event contains the winner
     winner_event = result["events"][-1]
-
-
-    # ==========================================
-    # RETURN RESULT TO TWITCH CHAT
-    # ==========================================
 
     return (
         f"⚔️ {username}'s "
@@ -332,10 +281,11 @@ def battle():
         f"{winner_event['winner_stand']}!"
     )
 
+
 @app.route("/battle-screen")
 def battle_screen():
-
     return render_template("battle.html")
+
 
 @app.route("/battle-state")
 def battle_state():
@@ -354,7 +304,6 @@ def battle_state():
 
 
 if __name__ == "__main__":
-
     app.run(
         host="0.0.0.0",
         port=5000
