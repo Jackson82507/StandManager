@@ -119,7 +119,7 @@ def reroll():
     result = reroll_stand(twitch_id)
 
     if not result:
-        return "❌ Reroll failed.", 500
+        return "Reroll failed.", 500
 
     stand = result["stand"]
     modifier = result["modifier"]
