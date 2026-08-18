@@ -2,25 +2,55 @@ import random
 import uuid
 
 
+# ============================================================
+# GLOBAL ACTIVE BATTLE
+# ============================================================
+
 ACTIVE_BATTLE = None
 
+
+# ============================================================
+# BASE BATTLE SETTINGS
+# ============================================================
 
 BASE_HP = 100
 BASE_ATTACK = 20
 BASE_DEFENSE = 10
 BASE_SPEED = 10
 
+CRITICAL_CHANCE = 0.10
 
-def create_fighter(username, twitch_id, stand_data):
+
+# ============================================================
+# CREATE FIGHTER
+# ============================================================
+
+def create_fighter(
+    username,
+    twitch_id,
+    stand_data
+):
 
     return {
         "username": username,
         "twitch_id": twitch_id,
 
+        # Stand information
         "stand_name": stand_data["stand_name"],
-        "rarity": stand_data.get("rarity", "COMMON"),
-        "modifier": stand_data.get("modifier", "Normal"),
 
+        # We keep these for display/use later,
+        # but they do NOT affect battle stats yet.
+        "rarity": stand_data.get(
+            "rarity",
+            "COMMON"
+        ),
+
+        "modifier": stand_data.get(
+            "modifier",
+            "Normal"
+        ),
+
+        # Base combat stats
         "max_hp": BASE_HP,
         "hp": BASE_HP,
 
@@ -30,9 +60,20 @@ def create_fighter(username, twitch_id, stand_data):
     }
 
 
-def calculate_damage(attacker, defender):
+# ============================================================
+# DAMAGE CALCULATION
+# ============================================================
 
-    variation = random.randint(-5, 5)
+def calculate_damage(
+    attacker,
+    defender
+):
+
+    # Small random variation so attacks aren't identical
+    variation = random.randint(
+        -5,
+        5
+    )
 
     damage = (
         attacker["attack"]
@@ -40,9 +81,17 @@ def calculate_damage(attacker, defender):
         - defender["defense"]
     )
 
-    damage = max(damage, 1)
+    # Never deal less than 1 damage
+    damage = max(
+        damage,
+        1
+    )
 
-    critical = random.random() < 0.10
+    # Critical hit
+    critical = (
+        random.random()
+        < CRITICAL_CHANCE
+    )
 
     if critical:
         damage *= 2
@@ -50,7 +99,18 @@ def calculate_damage(attacker, defender):
     return damage, critical
 
 
-def determine_first_attacker(fighter1, fighter2):
+# ============================================================
+# DETERMINE WHO GOES FIRST
+# ============================================================
+
+def determine_first_attacker(
+    fighter1,
+    fighter2
+):
+
+    # Later you can make Stand speed matter.
+    # For now both fighters have equal speed,
+    # so choose randomly.
 
     if random.random() < 0.5:
         return fighter1, fighter2
@@ -58,9 +118,21 @@ def determine_first_attacker(fighter1, fighter2):
     return fighter2, fighter1
 
 
-def run_battle(player1, player2):
+# ============================================================
+# RUN BATTLE
+# ============================================================
+
+def run_battle(
+    player1,
+    player2
+):
 
     global ACTIVE_BATTLE
+
+
+    # --------------------------------------------------------
+    # CREATE FIGHTERS
+    # --------------------------------------------------------
 
     fighter1 = create_fighter(
         player1["username"],
@@ -74,13 +146,30 @@ def run_battle(player1, player2):
         player2["stand"]
     )
 
-    battle_id = str(uuid.uuid4())
+
+    battle_id = str(
+        uuid.uuid4()
+    )
 
     events = []
 
-    # Battle introduction
+
+    # --------------------------------------------------------
+    # BATTLE START EVENT
+    # --------------------------------------------------------
+
     events.append({
         "type": "start",
+
+        "player1": fighter1["username"],
+        "player1_stand": fighter1["stand_name"],
+
+        "player2": fighter2["username"],
+        "player2_stand": fighter2["stand_name"],
+
+        "player1_hp": fighter1["hp"],
+        "player2_hp": fighter2["hp"],
+
         "text": (
             f"{fighter1['username']}'s "
             f"{fighter1['stand_name']} VS "
@@ -89,22 +178,73 @@ def run_battle(player1, player2):
         )
     })
 
-    attacker, defender = determine_first_attacker(
-        fighter1,
-        fighter2
+
+    # --------------------------------------------------------
+    # CHOOSE FIRST ATTACKER
+    # --------------------------------------------------------
+
+    attacker, defender = (
+        determine_first_attacker(
+            fighter1,
+            fighter2
+        )
     )
+
 
     round_number = 1
 
-    while fighter1["hp"] > 0 and fighter2["hp"] > 0:
 
-        damage, critical = calculate_damage(
-            attacker,
-            defender
+    # --------------------------------------------------------
+    # BATTLE LOOP
+    # --------------------------------------------------------
+
+    while (
+        fighter1["hp"] > 0
+        and fighter2["hp"] > 0
+    ):
+
+        damage, critical = (
+            calculate_damage(
+                attacker,
+                defender
+            )
         )
 
+
+        # Apply damage
         defender["hp"] -= damage
-        defender["hp"] = max(defender["hp"], 0)
+
+        defender["hp"] = max(
+            defender["hp"],
+            0
+        )
+
+
+        # ----------------------------------------------------
+        # CREATE ATTACK TEXT
+        # ----------------------------------------------------
+
+        if critical:
+
+            attack_text = (
+                f"{attacker['stand_name']} attacks! "
+                f"CRITICAL HIT! "
+                f"{defender['username']} takes "
+                f"{damage} damage!"
+            )
+
+        else:
+
+            attack_text = (
+                f"{attacker['stand_name']} attacks! "
+                f"{defender['username']} takes "
+                f"{damage} damage!"
+            )
+
+
+        # ----------------------------------------------------
+        # STORE ATTACK EVENT
+        # ----------------------------------------------------
 
         events.append({
             "type": "attack",
@@ -120,30 +260,70 @@ def run_battle(player1, player2):
             "damage": damage,
             "critical": critical,
 
+            # Important for OBS HP bars
             "player1_hp": fighter1["hp"],
             "player2_hp": fighter2["hp"],
 
-            "text": (
-                f"{attacker['stand_name']} attacks! "
-                f"{defender['username']} takes {damage} damage!"
-            )
+            "text": attack_text
         })
+
+
+        # ----------------------------------------------------
+        # CHECK FOR KO
+        # ----------------------------------------------------
 
         if defender["hp"] <= 0:
             break
 
-        attacker, defender = defender, attacker
+
+        # ----------------------------------------------------
+        # SWITCH TURNS
+        # ----------------------------------------------------
+
+        attacker, defender = (
+            defender,
+            attacker
+        )
+
         round_number += 1
 
+
+        # Safety in case something ever goes wrong
         if round_number > 100:
             break
 
+
+    # --------------------------------------------------------
+    # DETERMINE WINNER
+    # --------------------------------------------------------
+
     if fighter1["hp"] > fighter2["hp"]:
+
         winner = fighter1
         loser = fighter2
-    else:
+
+    elif fighter2["hp"] > fighter1["hp"]:
+
         winner = fighter2
         loser = fighter1
+
+    else:
+
+        # Extremely unlikely, but handles a draw safely
+        winner = random.choice([
+            fighter1,
+            fighter2
+        ])
+
+        if winner is fighter1:
+            loser = fighter2
+        else:
+            loser = fighter1
+
+
+    # --------------------------------------------------------
+    # VICTORY EVENT
+    # --------------------------------------------------------
 
     events.append({
         "type": "victory",
@@ -163,30 +343,61 @@ def run_battle(player1, player2):
         )
     })
 
+
+    # --------------------------------------------------------
+    # SAVE CURRENT BATTLE FOR OBS
+    # --------------------------------------------------------
+
     ACTIVE_BATTLE = {
+
         "battle_id": battle_id,
 
         "player1": {
             "username": fighter1["username"],
+            "twitch_id": fighter1["twitch_id"],
             "stand": fighter1["stand_name"],
+
+            "rarity": fighter1["rarity"],
+            "modifier": fighter1["modifier"],
+
             "max_hp": fighter1["max_hp"]
         },
 
         "player2": {
             "username": fighter2["username"],
+            "twitch_id": fighter2["twitch_id"],
             "stand": fighter2["stand_name"],
+
+            "rarity": fighter2["rarity"],
+            "modifier": fighter2["modifier"],
+
             "max_hp": fighter2["max_hp"]
         },
 
         "events": events,
 
-        "current_event": 0,
-
-        "finished": False
+        "finished": True
     }
 
+
     return ACTIVE_BATTLE
 
+
+# ============================================================
+# GET ACTIVE BATTLE
+# ============================================================
 
 def get_active_battle():
+
     return ACTIVE_BATTLE
+
+
+# ============================================================
+# CLEAR ACTIVE BATTLE
+# ============================================================
+
+def clear_active_battle():
+
+    global ACTIVE_BATTLE
+
+    ACTIVE_BATTLE = None
