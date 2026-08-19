@@ -1,10 +1,29 @@
-from flask import Flask, request, jsonify, render_template
 import os
 import random
 import requests
 from supabase import create_client, Client
 
+import secrets
+from urllib.parse import urlencode
+
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    render_template,
+    redirect,
+    url_for,
+    session
+)
+
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax"
+)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -12,6 +31,10 @@ API_SECRET = os.getenv("API_SECRET")
 
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
+
+TWITCH_REDIRECT_URI = os.getenv(
+    "TWITCH_REDIRECT_URI"
+)
 
 
 supabase = create_client(
@@ -40,7 +63,219 @@ from BattleSystem import (
 @app.route("/")
 def home():
 
-    return "Stand Manager API is running!"
+    return render_template(
+        "home.html",
+        user=session.get("user")
+    )
+
+@app.route("/login")
+def twitch_login():
+
+    # Generate random state for security
+    state = secrets.token_urlsafe(32)
+
+    session["twitch_oauth_state"] = state
+
+    params = {
+        "client_id": TWITCH_CLIENT_ID,
+        "redirect_uri": TWITCH_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid",
+        "state": state
+    }
+
+    twitch_auth_url = (
+        "https://id.twitch.tv/oauth2/authorize?"
+        + urlencode(params)
+    )
+
+    return redirect(twitch_auth_url)
+
+@app.route("/auth/twitch/callback")
+def twitch_callback():
+
+    # ==========================================
+    # CHECK FOR TWITCH ERROR
+    # ==========================================
+
+    error = request.args.get("error")
+
+    if error:
+
+        description = request.args.get(
+            "error_description",
+            "Twitch login failed."
+        )
+
+        return (
+            f"Twitch login failed: {description}",
+            400
+        )
+
+
+    # ==========================================
+    # VERIFY STATE
+    # ==========================================
+
+    returned_state = request.args.get("state")
+
+    expected_state = session.pop(
+        "twitch_oauth_state",
+        None
+    )
+
+
+    if (
+        not returned_state
+        or not expected_state
+        or not secrets.compare_digest(
+            returned_state,
+            expected_state
+        )
+    ):
+
+        return "Invalid OAuth state.", 400
+
+
+    # ==========================================
+    # GET AUTHORIZATION CODE
+    # ==========================================
+
+    code = request.args.get("code")
+
+    if not code:
+        return "Missing authorization code.", 400
+
+
+    # ==========================================
+    # EXCHANGE CODE FOR USER ACCESS TOKEN
+    # ==========================================
+
+    token_response = requests.post(
+        "https://id.twitch.tv/oauth2/token",
+        data={
+            "client_id": TWITCH_CLIENT_ID,
+            "client_secret": TWITCH_CLIENT_SECRET,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": TWITCH_REDIRECT_URI
+        },
+        timeout=10
+    )
+
+
+    if token_response.status_code != 200:
+
+        print(
+            "TWITCH TOKEN ERROR:",
+            token_response.text
+        )
+
+        return "Could not log in with Twitch.", 500
+
+
+    token_data = token_response.json()
+
+    access_token = token_data.get(
+        "access_token"
+    )
+
+
+    if not access_token:
+        return "Twitch did not return an access token.", 500
+
+
+    # ==========================================
+    # GET TWITCH USER
+    # ==========================================
+
+    user_response = requests.get(
+        "https://api.twitch.tv/helix/users",
+        headers={
+            "Authorization": (
+                f"Bearer {access_token}"
+            ),
+            "Client-Id": TWITCH_CLIENT_ID
+        },
+        timeout=10
+    )
+
+
+    if user_response.status_code != 200:
+
+        print(
+            "TWITCH USER ERROR:",
+            user_response.text
+        )
+
+        return "Could not retrieve Twitch user.", 500
+
+
+    user_data = user_response.json().get(
+        "data",
+        []
+    )
+
+
+    if not user_data:
+        return "Twitch user was not found.", 404
+
+
+    twitch_user = user_data[0]
+
+
+    # ==========================================
+    # CREATE WEBSITE SESSION
+    # ==========================================
+
+    session["user"] = {
+        "twitch_id": twitch_user["id"],
+        "login": twitch_user["login"],
+        "display_name": twitch_user["display_name"],
+        "profile_image": twitch_user[
+            "profile_image_url"
+        ]
+    }
+
+
+    # ==========================================
+    # GO TO DASHBOARD
+    # ==========================================
+
+    return redirect(
+        url_for("dashboard")
+    )
+
+@app.route("/dashboard")
+def dashboard():
+
+    user = session.get("user")
+
+    if not user:
+        return redirect(
+            url_for("twitch_login")
+        )
+
+
+    stand = get_user_stand(
+        user["twitch_id"]
+    )
+
+
+    return render_template(
+        "dashboard.html",
+        user=user,
+        stand=stand
+    )
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect(
+        url_for("home")
+    )
 
 @app.route("/stand")
 def get_stand():
