@@ -15,6 +15,17 @@ from flask import (
     url_for,
     session
 )
+import secrets
+
+FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
+
+app.secret_key = FLASK_SECRET_KEY
+
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax"
+)
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
