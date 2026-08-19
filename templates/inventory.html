@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Stand Inventory</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+            margin: 0;
+
+            font-family:
+                Arial,
+                sans-serif;
+
+            background:
+                #0c0c14;
+
+            color: white;
+        }
+
+
+        nav {
+            height: 70px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 8%;
+
+            background:
+                #12121c;
+
+            border-bottom:
+                1px solid #29293d;
+        }
+
+
+        nav a {
+            color: white;
+
+            text-decoration: none;
+        }
+
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+
+        .user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+
+        .user img {
+            width: 40px;
+            height: 40px;
+
+            border-radius: 50%;
+        }
+
+
+        main {
+            max-width: 1100px;
+
+            margin: auto;
+
+            padding: 50px 25px;
+        }
+
+
+        .page-header {
+            margin-bottom: 35px;
+        }
+
+
+        .page-header h1 {
+            margin-bottom: 8px;
+        }
+
+
+        .muted {
+            color: #9494a8;
+        }
+
+
+        .inventory-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fill,
+                    minmax(250px, 1fr)
+                );
+
+            gap: 20px;
+        }
+
+
+        .stand-card {
+
+            position: relative;
+
+            min-height: 220px;
+
+            padding: 25px;
+
+            border:
+                1px solid #34344b;
+
+            background:
+                #151522;
+
+            border-radius: 16px;
+
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        .stand-card.equipped {
+
+            border-color:
+                #9147ff;
+        }
+
+
+        .rarity {
+
+            color: #9494a8;
+
+            font-size: 13px;
+
+            letter-spacing: 2px;
+
+            text-transform: uppercase;
+        }
+
+
+        .stand-name {
+
+            margin-top: 12px;
+
+            font-size: 26px;
+
+            font-weight: bold;
+        }
+
+
+        .modifier {
+
+            margin-top: 8px;
+
+            color: #b88cff;
+
+            font-size: 16px;
+        }
+
+
+        .obtained {
+
+            margin-top: 10px;
+
+            color: #77778b;
+
+            font-size: 13px;
+        }
+
+
+        .card-bottom {
+
+            margin-top: auto;
+
+            padding-top: 25px;
+        }
+
+
+        .equip-button {
+
+            width: 100%;
+
+            border: none;
+
+            padding:
+                12px 20px;
+
+            border-radius: 8px;
+
+            background:
+                #9147ff;
+
+            color: white;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            font-size: 15px;
+        }
+
+
+        .equip-button:hover {
+
+            background:
+                #a970ff;
+        }
+
+
+        .equipped-label {
+
+            width: 100%;
+
+            padding:
+                12px 20px;
+
+            border-radius: 8px;
+
+            background:
+                #252538;
+
+            text-align: center;
+
+            color: #b88cff;
+
+            font-weight: bold;
+        }
+
+
+        .empty {
+
+            padding: 40px;
+
+            border:
+                1px solid #34344b;
+
+            border-radius: 16px;
+
+            background:
+                #151522;
+
+            text-align: center;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<nav>
+
+
+    <div class="nav-left">
+
+        <strong>
+            STAND MANAGER
+        </strong>
+
+
+        <a href="/dashboard">
+            Dashboard
+        </a>
+
+
+        <a href="/inventory">
+            Inventory
+        </a>
+
+    </div>
+
+
+    <div class="user">
+
+
+        <img
+            src="{{ user.profile_image }}"
+            alt="Profile"
+        >
+
+
+        <span>
+            {{ user.display_name }}
+        </span>
+
+
+        <a href="/logout">
+            Logout
+        </a>
+
+
+    </div>
+
+
+</nav>
+
+
+<main>
+
+
+    <div class="page-header">
+
+        <h1>
+            Your Stand Inventory
+        </h1>
+
+
+        <div class="muted">
+
+            {{ stands|length }}
+            Stand{% if stands|length != 1 %}s{% endif %}
+            owned
+
+        </div>
+
+    </div>
+
+
+    {% if stands %}
+
+
+        <div class="inventory-grid">
+
+
+            {% for stand in stands %}
+
+
+                <div
+                    class="
+                        stand-card
+                        {% if stand.id == equipped_id %}
+                            equipped
+                        {% endif %}
+                    "
+                >
+
+
+                    <div class="rarity">
+
+                        {{ stand.rarity }}
+
+                    </div>
+
+
+                    <div class="stand-name">
+
+                        {{ stand.stand_name }}
+
+                    </div>
+
+
+                    {% if
+                        stand.modifier
+                        and
+                        stand.modifier|lower
+                        not in ["normal", "none"]
+                    %}
+
+                        <div class="modifier">
+
+                            {{ stand.modifier }}
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <div class="obtained">
+
+                        Inventory #{{ stand.id }}
+
+                    </div>
+
+
+                    <div class="card-bottom">
+
+
+                        {% if stand.id == equipped_id %}
+
+
+                            <div class="equipped-label">
+
+                                ★ EQUIPPED
+
+                            </div>
+
+
+                        {% else %}
+
+
+                            <form
+                                method="POST"
+
+                                action="{{
+                                    url_for(
+                                        'equip_inventory_stand',
+                                        inventory_id=stand.id
+                                    )
+                                }}"
+                            >
+
+                                <button
+                                    class="equip-button"
+                                    type="submit"
+                                >
+
+                                    EQUIP
+
+                                </button>
+
+                            </form>
+
+
+                        {% endif %}
+
+
+                    </div>
+
+
+                </div>
+
+
+            {% endfor %}
+
+
+        </div>
+
+
+    {% else %}
+
+
+        <div class="empty">
+
+            <h2>
+                No Stands Yet
+            </h2>
+
+
+            <p class="muted">
+
+                Roll a Stand on the Twitch stream
+                to add one to your inventory.
+
+            </p>
+
+        </div>
+
+
+    {% endif %}
+
+
+</main>
+
+
+</body>
+
+</html>

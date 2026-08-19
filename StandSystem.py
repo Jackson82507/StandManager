@@ -311,6 +311,32 @@ def get_twitch_username_from_id(twitch_id):
     return users[0]["display_name"]
 
 
+def add_and_equip_stand(
+    twitch_id,
+    stand_name,
+    rarity,
+    modifier="Normal"
+):
+
+    inventory_stand = (
+        add_stand_to_inventory(
+            twitch_id,
+            stand_name,
+            rarity,
+            modifier
+        )
+    )
+
+
+    if not inventory_stand:
+        return None
+
+
+    return equip_stand(
+        twitch_id,
+        inventory_stand["id"]
+    )
+
 def roll_modifier():
 
     roll = random.uniform(0, 100)
@@ -339,6 +365,10 @@ def roll_stand():
 
 def get_user_stand(twitch_id):
 
+    # ==========================================
+    # GET USER
+    # ==========================================
+
     result = (
         supabase
         .table("stand_users")
@@ -347,10 +377,64 @@ def get_user_stand(twitch_id):
         .execute()
     )
 
+
     if not result.data:
         return None
 
-    return result.data[0]
+
+    user = result.data[0]
+
+    equipped_id = user.get(
+        "equipped_stand_id"
+    )
+
+
+    # ==========================================
+    # GET EQUIPPED INVENTORY STAND
+    # ==========================================
+
+    if equipped_id:
+
+        inventory_result = (
+            supabase
+            .table("stand_inventory")
+            .select("*")
+            .eq("id", equipped_id)
+            .eq("twitch_id", twitch_id)
+            .execute()
+        )
+
+
+        if inventory_result.data:
+
+            return inventory_result.data[0]
+
+
+    # ==========================================
+    # OLD DATA FALLBACK
+    # ==========================================
+
+    if user.get("stand_name"):
+
+        return {
+            "stand_name":
+                user["stand_name"],
+
+            "rarity":
+                user.get(
+                    "rarity",
+                    "COMMON"
+                ),
+
+            "modifier":
+                user.get(
+                    "modifier",
+                    "Normal"
+                )
+        }
+
+
+    return None
 
 def set_user_stand(
     twitch_id,
@@ -377,30 +461,150 @@ def roll_stand_for_user(twitch_id):
 
     result = roll_stand()
 
-    set_user_stand(
-        twitch_id,
-        result["stand"]["name"],
-        result["modifier"]
+    stand = result["stand"]
+    modifier = result["modifier"]
+
+
+    inventory_stand = (
+        add_and_equip_stand(
+            twitch_id,
+            stand["name"],
+            stand["rarity"],
+            modifier
+        )
     )
+
+
+    if inventory_stand:
+
+        result["inventory_id"] = (
+            inventory_stand["id"]
+        )
+
 
     return result
 
 
 def reroll_stand(twitch_id):
 
-    existing = get_user_stand(twitch_id)
-
-    if not existing:
-        return None
-
     result = roll_stand()
 
-    set_user_stand(
-        twitch_id,
-        result["stand"]["name"],
-        result["modifier"]
+    stand = result["stand"]
+    modifier = result["modifier"]
+
+
+    inventory_stand = (
+        add_and_equip_stand(
+            twitch_id,
+            stand["name"],
+            stand["rarity"],
+            modifier
+        )
     )
 
-    return result
+
+    if not inventory_stand:
+        return None
+
+
+    result["inventory_id"] = (
+        inventory_stand["id"]
+    )
+
 
     return result
+
+def get_stand_inventory(twitch_id):
+
+    result = (
+        supabase
+        .table("stand_inventory")
+        .select("*")
+        .eq("twitch_id", twitch_id)
+        .order(
+            "obtained_at",
+            desc=True
+        )
+        .execute()
+    )
+
+    return result.data or []
+
+def add_stand_to_inventory(
+    twitch_id,
+    stand_name,
+    rarity,
+    modifier="Normal"
+):
+
+    result = (
+        supabase
+        .table("stand_inventory")
+        .insert({
+            "twitch_id": twitch_id,
+            "stand_name": stand_name,
+            "rarity": rarity,
+            "modifier": modifier or "Normal"
+        })
+        .execute()
+    )
+
+    if not result.data:
+        return None
+
+    return result.data[0]
+
+def equip_stand(
+    twitch_id,
+    inventory_id
+):
+
+    # ==========================================
+    # MAKE SURE USER OWNS THIS STAND
+    # ==========================================
+
+    result = (
+        supabase
+        .table("stand_inventory")
+        .select("*")
+        .eq("id", inventory_id)
+        .eq("twitch_id", twitch_id)
+        .execute()
+    )
+
+
+    if not result.data:
+        return None
+
+
+    stand = result.data[0]
+
+
+    # ==========================================
+    # UPDATE EQUIPPED STAND
+    # ==========================================
+
+    (
+        supabase
+        .table("stand_users")
+        .upsert({
+            "twitch_id": twitch_id,
+
+            "equipped_stand_id":
+                stand["id"],
+
+            # Keep old columns synchronized
+            "stand_name":
+                stand["stand_name"],
+
+            "rarity":
+                stand["rarity"],
+
+            "modifier":
+                stand["modifier"]
+        })
+        .execute()
+    )
+
+
+    return stand

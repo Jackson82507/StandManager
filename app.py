@@ -50,6 +50,10 @@ from StandSystem import (
     get_twitch_user_id,
     get_twitch_username_from_id,
     get_user_stand,
+    get_stand_inventory,
+    add_stand_to_inventory,
+    add_and_equip_stand,
+    equip_stand,
     roll_stand_for_user,
     reroll_stand,
     set_user_stand
@@ -449,6 +453,83 @@ def set_stand_command():
         f"{username}'s Stand has been set to "
         f"{selected_stand['name']} "
         f"[{selected_stand['rarity']}]!"
+    )
+
+@app.route("/inventory")
+def inventory():
+
+    user = session.get("user")
+
+
+    if not user:
+
+        return redirect(
+            url_for("twitch_login")
+        )
+
+
+    stands = get_stand_inventory(
+        user["twitch_id"]
+    )
+
+
+    equipped_stand = get_user_stand(
+        user["twitch_id"]
+    )
+
+
+    equipped_id = None
+
+
+    if equipped_stand:
+
+        equipped_id = (
+            equipped_stand.get("id")
+        )
+
+
+    return render_template(
+        "inventory.html",
+
+        user=user,
+        stands=stands,
+        equipped_id=equipped_id
+    )
+
+@app.route(
+    "/inventory/equip/<int:inventory_id>",
+    methods=["POST"]
+)
+def equip_inventory_stand(
+    inventory_id
+):
+
+    user = session.get("user")
+
+
+    if not user:
+
+        return redirect(
+            url_for("twitch_login")
+        )
+
+
+    stand = equip_stand(
+        user["twitch_id"],
+        inventory_id
+    )
+
+
+    if not stand:
+
+        return (
+            "You don't own this Stand.",
+            403
+        )
+
+
+    return redirect(
+        url_for("inventory")
     )
 
 @app.route("/battle")
