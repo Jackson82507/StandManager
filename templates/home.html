@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Stand Manager</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            font-family:
+                Arial,
+                sans-serif;
+
+            background:
+                #0c0c14;
+
+            color: white;
+        }
+
+
+        nav {
+            height: 70px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 8%;
+
+            border-bottom:
+                1px solid #29293d;
+
+            background:
+                #12121c;
+        }
+
+
+        .logo {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+
+        .profile-picture {
+            width: 40px;
+            height: 40px;
+
+            border-radius: 50%;
+        }
+
+
+        .hero {
+            min-height:
+                calc(100vh - 70px);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            text-align: center;
+
+            padding: 40px;
+        }
+
+
+        .hero-content {
+            max-width: 750px;
+        }
+
+
+        h1 {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+
+        .subtitle {
+            color: #aaaabd;
+
+            font-size: 20px;
+            line-height: 1.6;
+
+            margin-bottom: 40px;
+        }
+
+
+        .button {
+            display: inline-block;
+
+            padding:
+                15px 28px;
+
+            border-radius: 10px;
+
+            background:
+                #9147ff;
+
+            color: white;
+
+            text-decoration: none;
+
+            font-size: 18px;
+            font-weight: bold;
+
+            transition: 0.2s;
+        }
+
+
+        .button:hover {
+            transform:
+                translateY(-2px);
+
+            background:
+                #a970ff;
+        }
+
+
+        .secondary {
+            background:
+                #252538;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<nav>
+
+    <div class="logo">
+        STAND MANAGER
+    </div>
+
+
+    {% if user %}
+
+        <div class="nav-user">
+
+            <img
+                class="profile-picture"
+                src="{{ user.profile_image }}"
+                alt="Twitch profile"
+            >
+
+            <span>
+                {{ user.display_name }}
+            </span>
+
+            <a
+                class="button secondary"
+                href="/dashboard"
+            >
+                Dashboard
+            </a>
+
+        </div>
+
+    {% else %}
+
+        <a
+            class="button"
+            href="/login"
+        >
+            Login with Twitch
+        </a>
+
+    {% endif %}
+
+</nav>
+
+
+<section class="hero">
+
+    <div class="hero-content">
+
+        <h1>
+            Your Stand.
+            Your Collection.
+        </h1>
+
+
+        <p class="subtitle">
+
+            Collect Stands, discover rare variants,
+            battle other viewers, complete your
+            Stand Index, and manage everything
+            connected to the stream.
+
+        </p>
+
+
+        {% if user %}
+
+            <a
+                class="button"
+                href="/dashboard"
+            >
+                Open Dashboard
+            </a>
+
+        {% else %}
+
+            <a
+                class="button"
+                href="/login"
+            >
+                Connect Twitch
+            </a>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+</body>
+
+</html>

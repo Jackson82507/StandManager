@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Stand Dashboard</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+            margin: 0;
+
+            font-family:
+                Arial,
+                sans-serif;
+
+            background:
+                #0c0c14;
+
+            color: white;
+        }
+
+
+        nav {
+            height: 70px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 8%;
+
+            background:
+                #12121c;
+
+            border-bottom:
+                1px solid #29293d;
+        }
+
+
+        nav a {
+            color: white;
+            text-decoration: none;
+        }
+
+
+        .user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+
+        .user img {
+            width: 40px;
+            height: 40px;
+
+            border-radius: 50%;
+        }
+
+
+        main {
+            max-width: 1100px;
+
+            margin: auto;
+
+            padding: 50px 25px;
+        }
+
+
+        .welcome {
+            margin-bottom: 40px;
+        }
+
+
+        .welcome h1 {
+            margin-bottom: 8px;
+        }
+
+
+        .muted {
+            color: #9494a8;
+        }
+
+
+        .stand-card {
+            padding: 30px;
+
+            border:
+                1px solid #34344b;
+
+            background:
+                #151522;
+
+            border-radius: 16px;
+        }
+
+
+        .stand-label {
+            color: #9494a8;
+
+            font-size: 14px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 2px;
+        }
+
+
+        .stand-name {
+            font-size: 36px;
+
+            margin:
+                10px 0;
+        }
+
+
+        .modifier {
+            color: #b88cff;
+        }
+
+
+        .menu {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(200px, 1fr)
+                );
+
+            gap: 20px;
+
+            margin-top: 25px;
+        }
+
+
+        .menu-item {
+            padding: 25px;
+
+            background:
+                #151522;
+
+            border:
+                1px solid #34344b;
+
+            border-radius: 12px;
+
+            color: white;
+
+            text-decoration: none;
+        }
+
+
+        .menu-item:hover {
+            border-color:
+                #9147ff;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<nav>
+
+    <strong>
+        STAND MANAGER
+    </strong>
+
+
+    <div class="user">
+
+        <img
+            src="{{ user.profile_image }}"
+            alt="Profile"
+        >
+
+        {{ user.display_name }}
+
+        <a href="/logout">
+            Logout
+        </a>
+
+    </div>
+
+</nav>
+
+
+<main>
+
+
+    <div class="welcome">
+
+        <h1>
+            Welcome, {{ user.display_name }}
+        </h1>
+
+        <div class="muted">
+            Twitch ID: {{ user.twitch_id }}
+        </div>
+
+    </div>
+
+
+    {% if stand %}
+
+        <div class="stand-card">
+
+            <div class="stand-label">
+                Current Stand
+            </div>
+
+
+            <div class="stand-name">
+                {{ stand.stand_name }}
+            </div>
+
+
+            {% if
+                stand.modifier
+                and
+                stand.modifier|lower != "normal"
+            %}
+
+                <div class="modifier">
+                    {{ stand.modifier }}
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+    {% else %}
+
+
+        <div class="stand-card">
+
+            <div class="stand-label">
+                Current Stand
+            </div>
+
+            <div class="stand-name">
+                No Stand Yet
+            </div>
+
+            <p class="muted">
+                Roll your first Stand through
+                the Twitch stream.
+            </p>
+
+        </div>
+
+
+    {% endif %}
+
+
+    <div class="menu">
+
+        <a
+            class="menu-item"
+            href="#"
+        >
+            <h3>Inventory</h3>
+
+            <p class="muted">
+                View and equip your Stands.
+            </p>
+        </a>
+
+
+        <a
+            class="menu-item"
+            href="#"
+        >
+            <h3>Stand Index</h3>
+
+            <p class="muted">
+                See everything you've discovered.
+            </p>
+        </a>
+
+
+        <a
+            class="menu-item"
+            href="#"
+        >
+            <h3>Battle History</h3>
+
+            <p class="muted">
+                View previous fights.
+            </p>
+        </a>
+
+    </div>
+
+
+</main>
+
+
+</body>
+
+</html>
